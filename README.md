@@ -2,6 +2,8 @@
 
 Example project for creating a Propogating Datolog. Maybe. I might be lying and this is example data for something else entirely. Who knows?
 
+![Propogating Datascript Example](https://raw.githubusercontent.com/bamarco/propolog-example/resources/PropogatingDatascriptExample.svg)
+
 ## Related projects
 
 https://github.com/metasoarous/datsys
