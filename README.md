@@ -2,7 +2,7 @@
 
 Example project for creating a Propogating Datolog. Maybe. I might be lying and this is example data for something else entirely. Who knows?
 
-![Propogating Datascript Example](resources/PropogatingDatascriptExample.svg)
+![Propogating Datascript Example](resources/PropogatorDatascriptExample.svg)
 
 ## Related projects
 
