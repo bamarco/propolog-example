@@ -35,7 +35,8 @@
 ;;   (into
   [:div.v-box.outbox
    [:h3 "Outbox"]
-   [:p (pr-str outputs)]
+
+   [:p.segment (pr-str outputs)]
 ;;    (component button
 ;;               :label "^Feed-all"
 ;;               :on-click (fn [] #()))
@@ -49,7 +50,7 @@
     [:span]
     [:div.v-box.inbox
       [:h3 "Inbox"]
-      [:p (pr-str inputs)]]))
+      [:p.segment (pr-str inputs)]]))
 
 (defn task-box [env task-name]
   (let [{:keys [inbox outputs]} (get-in env [:tasks task-name])]
@@ -65,8 +66,8 @@
        [:div.v-box
         [:p (str "Next Action: " (pr-str (:next-action env-data)))]]
         (for [task-name
-              (map first (:tasks env))
-;;               (:sorted-tasks env) ???: right now the task come out in a better order naively than :sorted-tasks is
+;;               (keys (:tasks env))
+              (:sorted-tasks env)
               ]
           ^{:key (:onyx/name task-name)}
           [task-box env task-name]))))
@@ -79,7 +80,7 @@
 (defn onyx-sim []
   (let [env (listen [:propolog-example.sub/onyx-env])]
     [:div.v-box
-     [env-info env]
+;;      [env-info env]
      [:div.h-box
       (button :label "Tick" :on-click #(rf/dispatch [:propolog-example.event/onyx-tick]))
       (button :label "Step" :on-click #(rf/dispatch [:propolog-example.event/onyx-step]))

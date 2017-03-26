@@ -1,3 +1,36 @@
 h1 {
   text-decoration: underline;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Arvo", "Times New Roman", Times, serif;
+}
+
+.html, .body {
+  font-family "Work Sans", Roboto, "Trebuchet MS", Helvetica, sans-serif;
+}
+
+.task {
+  background-color: LightCyan;
+  margin-top: .5em;
+  margin-bottom: .5em;
+  margin-left: 1ch;
+  margin-right: 1ch;
+  padding-left: 1ch;
+  padding-right: 1ch;
+  padding-top: .5em;
+  padding-bottom: .5em;
+}
+
+.inbox, .outbox {
+  background-color: PaleTurquoise;
+
+  padding-left: 1ch;
+  padding-right: 1ch;
+  padding-top: .5em;
+  padding-bottom: .5em;
+}
+
+.segment {
+/*   color: green; */
+}
