@@ -1,11 +1,14 @@
 (ns propolog-example.core
-  (:require [reagent.core :as reagent :refer [atom]]))
+  (:require [reagent.core :as r]
+            [re-frame.core :as rf]
+            [propolog-example.event] ;; Needed for registrations for events
+            [propolog-example.gui :as gui]
+            [propolog-example.init :as init]
+            ))
 
-(enable-console-print!)
+(defn hook []
+  (init/init)
+  (fn []
+    [gui/root]))
 
-(defonce app-state (atom {:text "Hello Chestnut!"}))
-
-(defn greeting []
-  [:h1 (:text @app-state)])
-
-(reagent/render [greeting] (js/document.getElementById "app"))
+(r/render [hook] (js/document.getElementById "app-hook"))

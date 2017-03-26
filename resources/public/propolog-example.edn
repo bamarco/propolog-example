@@ -1,0 +1,67 @@
+[
+  ;; Example Data:
+  {:db/id -42
+   :shape :triangle
+   :sides 3}
+
+  {:db/id -43
+   :shape :square
+   :sides 3}
+
+  {:db/id -44
+   :shape :rect
+   :sides 3}
+
+;;   ;; Onyx Catalog
+;;   {:db/id -1000
+;;    :onyx/type :input
+;;    :onyx/name :in}
+
+;;   {:db/id -1001
+;;    :onyx/type :output
+;;    :onyx/name :render}
+
+;;   {:db/id -1002
+;;    :onyx/type :function
+;;    :onyx/name :sides
+;;    :onyx/fn :propolog-example.catalog/sides}
+
+;;   {:db/id -1003
+;;    :onyx/type :function
+;;    :onyx/name :shape
+;;    :onyx/fn :propolog-example.catalog/shape}
+
+;;   {:db/id -1004
+;;    :onyx/type :function
+;;    :onyx/name :datoms
+;;    :onyx/fn :propolog-example.catalog/datoms}
+
+;;   {:db/id -1005
+;;    :onyx/type :function
+;;    :onyx/name :rule1
+;;    :onyx/fn :propolog-example.catalog/rule1}
+
+;;   {:db/id -1006
+;;    :onyx/type :function
+;;    :onyx/name :rule2
+;;    :onyx/fn :propolog-example.catalog/rule2}
+
+;;   {:db/id -1006
+;;    :onyx/type :function
+;;    :onyx/name :rule3
+;;    :onyx/fn :propolog-example.catalog/rule3}
+
+;;   {:db/id -1006
+;;    :onyx/type :function
+;;    :onyx/name :q1
+;;    :onyx/fn :propolog-example.catalog/q1}
+
+;;   {:db/id -1006
+;;    :onyx/type :function
+;;    :onyx/name :q2
+;;    :onyx/fn :propolog-example.catalog/q2}
+
+
+  ]
+
+
