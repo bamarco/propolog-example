@@ -75,8 +75,8 @@
                           :onyx/fn :propolog-example.catalog/q2-task
                           :onyx/doc "where [?s :shape ?shape]" }]
                :workflow [[:in :datoms]
-                          [:datoms :rule1]
-                          [:datoms :rule2] [:rule2 :rule3]
+                          [:datoms :rule1] [:rule1 :rule3]
+                          [:datoms :rule2]
                           [:rule3 :q1]
                           [:rule2 :q2]
                           [:q1 :render]
@@ -88,7 +88,7 @@
                      (onyx/new-segment :in {:transactions #{[42 :shape :triangle]
                                                             [42 :sides 3]
                                                             [43 :shape :square]
-                                                            [43 :sides 3]
+                                                            [43 :sides 4]
                                                             [44 :shape :rect]
-                                                            [44 :sides 3]}}))}})))
+                                                            [44 :sides 4]}}))}})))
 

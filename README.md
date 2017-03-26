@@ -4,6 +4,8 @@ Example project for creating a Propogating Datolog. Maybe. I might be lying and 
 
 ![Propogating Datascript Example](resources/PropogatorDatascriptExample.svg)
 
+Right now all the tasks are stored in `catalog.cljc` and the onyx job is initialized in `event.cljc`. These are the files you need to look at to change the compute-graph.
+
 ## Related projects
 
 https://github.com/metasoarous/datsys
