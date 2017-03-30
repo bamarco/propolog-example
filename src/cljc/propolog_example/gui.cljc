@@ -87,7 +87,9 @@
        :children
        [(flui/button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
         (flui/button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
-        (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))])
+        (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))
+        (flui/button :label "Start" :on-click #(rf/dispatch [:onyx.api/start [:propolog/name :main-env]]))
+        (flui/button :label "Stop" :on-click #(rf/dispatch [:onyx.api/stop [:propolog/name :main-env]]))])
      (flui/h-box
        :children
        [(flui/label :label "Hidden Tasks:")

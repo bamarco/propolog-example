@@ -6,9 +6,10 @@
             [propolog-example.utils :as utils :refer [cat-into]]
             #?(:cljs [cljs.reader :as reader]
                :clj [clojure.edn :as reader])
+            #?(:cljs [reagent.core :as r])
             )
   #?(:cljs (:require-macros [propolog-example.event :refer [reg-event-ds reg-event-ds-async]]))
-           )
+  )
 
 ;; (def map-event
 ;;   (re-frame.core/->interceptor
@@ -39,6 +40,20 @@
                                 ::event event#
                                 ::txf (fn [db# resp#] (~txf db# event# resp#))}}))))
 
+#?(:cljs
+    (defn re-trigger-timer []
+      (r/next-tick (fn [] (rf/dispatch [:reagent/next-tick])))))
+
+(reg-event-ds
+  :reagent/next-tick
+  (fn [db _]
+    (let [env (d/entity db [:propolog/name :main-env])
+          running (:onyx.sim/running env)
+          env (:onyx.sim/env env)]
+      (when running
+        (re-trigger-timer)
+        [[:db/add [:propolog/name :main-env] :onyx.sim/env (onyx/tick env)]]))))
+
 (defn ds->onyx [datascript-map]
   (-> datascript-map
 ;;       (dissoc :db/id)
@@ -68,7 +83,6 @@
       [[:db/add env-id :onyx.sim/env (onyx/new-segment env task segment)]]
     )))
 
-
 (reg-event-ds
   :onyx.api/tick
   (fn [db [_ env-id]]
@@ -92,6 +106,23 @@
                   ds->onyx)]
       [[:db/add env-id :onyx.sim/env (onyx/drain env)]])))
 
+(reg-event-ds
+  :onyx.api/start
+  (fn [db [_ env-id]]
+    (let [;;env (-> (d/entity db env-id)
+          ;;        :onyx.sim/env)
+           ]
+      (re-trigger-timer)
+      [[:db/add env-id :onyx.sim/running true]]
+    )))
+
+(reg-event-ds
+  :onyx.api/stop
+  (fn [db [_ env-id]]
+    (let [;;env (-> (d/entity db env-id)
+          ;;        :onyx.sim/env)
+          ]
+      [[:db/add env-id :onyx.sim/running false]])))
 
 (reg-event-ds
   :onyx.sim/hide-task
