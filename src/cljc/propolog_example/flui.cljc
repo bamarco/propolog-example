@@ -19,5 +19,6 @@
 
 (def button (provide #?(:clj 'button :cljs rc/button)))
 (def input-text (provide #?(:clj 'button :cljs rc/input-text)))
+(def input-textarea (provide #?(:clj 'button :cljs rc/input-textarea)))
 (def selection-list (provide #?(:clj 'button :cljs rc/selection-list)))
 (def single-dropdown (provide #?(:clj 'button :cljs rc/single-dropdown)))

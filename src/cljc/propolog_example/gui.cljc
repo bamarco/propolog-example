@@ -45,6 +45,7 @@
 ;;     (log/debug "task-name" (get-in env [:tasks task-name]))
     [:div.v-box.task
      [:h2 task-name]
+     (flui/button :label "Hide" :on-click #(rf/dispatch [:onyx.sim/hide-task [:propolog/name :main-env] task-name]))
      (when inbox (flui/component pretty-onyx-inbox env inbox))
      (when outputs (flui/component pretty-onyx-outbox env outputs))]))
 
@@ -80,7 +81,7 @@
       (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
      [:div.h-box
       [:p "Hide Tasks:"]
-      (flui/input-text :model (pr-str hidden-tasks) :on-change #(rf/dispatch [:onyx.sim/hide-tasks [:propolog/name :main-env] %]))]
+      (flui/input-textarea :model (pr-str hidden-tasks) :on-change #(rf/dispatch [:onyx.sim/hide-tasks [:propolog/name :main-env] %]))]
      (flui/component pretty-onyx onyx-env :hidden hidden-tasks)
       ]))
 

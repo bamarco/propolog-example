@@ -87,6 +87,12 @@
       [[:db/add env-id :onyx.sim/env (onyx/drain env)]])))
 
 
+(reg-event-ds
+  :onyx.sim/hide-task
+  (fn [db env-id task-name]
+    (let [hidden (-> (d/entity db env-id)
+                     :onyx.sim/hide-tasks)]
+    [[:db/add env-id :onyx.sim/hide-tasks (conj hidden task-name)]])))
 
 (reg-event-ds
   :onyx.sim/hide-tasks
