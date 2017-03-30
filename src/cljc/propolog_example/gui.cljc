@@ -50,26 +50,29 @@
      (when outputs (flui/component pretty-onyx-outbox env outputs))]))
 
 (defn pretty-onyx [env & {:keys [hidden]}]
-  (let [env-data (onyx/env-summary env)]
-     (into
-       [:div.v-box
-        [:p (str "Next Action: " (pr-str (:next-action env-data)))]]
-        (for [task-name
-;;               (keys (:tasks env))
-              (remove (or hidden #{}) (:sorted-tasks env))
-              ]
-          ^{:key (:onyx/name task-name)}
-          (flui/component task-box env task-name)))))
+  (into
+    [:div.v-box
+     [:p (str "Next Action: " (pr-str (:next-action env)))]]
+    (for [task-name
+          ;;               (keys (:tasks env))
+          (remove (or hidden #{}) (:sorted-tasks env))
+          ]
+      ^{:key (:onyx/name task-name)}
+      (flui/component task-box env task-name))))
 
 (defn env-info [env]
-  [:div
-   [:p (str (keys env))]
-   [:p (str (:sorted-tasks env))]])
+  [:div.v-box
+   [:p (str ":sorted-tasks" (:sorted-tasks env))]
+   [:p (str "env-summary" (pr-str (onyx/env-summary env)))]])
 
 (defn onyx-sim []
   (let [env (listen [:propolog-example.sub/propolog-env [:propolog/name :main-env]])
         onyx-env (listen [:onyx.sim/env [:propolog/name :main-env]])
-        hidden-tasks (listen [:onyx.sim/hide-tasks [:propolog/name :main-env]])];;(:onyx.sim/env env)]
+        hidden-tasks (listen [:onyx.sim/hide-tasks [:propolog/name :main-env]])
+        job (listen [:onyx.core/job [:propolog/name :main-env]])
+        tasks (:onyx.core/catalog job)
+        visible-tasks (into #{} (remove (or hidden-tasks #{}) (:sorted-tasks onyx-env)))
+        ];;(:onyx.sim/env env)]
     [:div.v-box
      [:h1 (:propolog/title env)]
      [:p (:propolog/description env)]
@@ -79,11 +82,17 @@
       (flui/button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
       (flui/button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
       (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
-     [:div.h-box
-      [:p "Hide Tasks:"]
-      (flui/input-textarea :model (pr-str hidden-tasks) :on-change #(rf/dispatch [:onyx.sim/hide-tasks [:propolog/name :main-env] %]))]
-     (flui/component pretty-onyx onyx-env :hidden hidden-tasks)
-      ]))
+     (flui/h-box
+       :children
+       [(flui/label :label "Hidden Tasks:")
+        (flui/selection-list :choices tasks
+                             :model hidden-tasks
+                             :id-fn :onyx/name
+                             :max-height "8em"
+                             :width "20ch"
+                             :label-fn :onyx/name
+                             :on-change #(rf/dispatch [:onyx.sim/hide-tasks [:propolog/name :main-env] %]))])
+     (flui/component pretty-onyx onyx-env :hidden hidden-tasks)]))
 
 (defn root []
   (flui/component onyx-sim))

@@ -97,5 +97,5 @@
 (reg-event-ds
   :onyx.sim/hide-tasks
   (fn [db env-id tasks]
-    [[:db/add env-id :onyx.sim/hide-tasks (reader/read-string tasks)]]))
+    [[:db/add env-id :onyx.sim/hide-tasks tasks]]))
 

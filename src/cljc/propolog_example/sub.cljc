@@ -64,7 +64,7 @@
   ::propolog-env
   :<- [::conn]
   (fn [conn [_ env-id]]
-    (pull conn '[{:onyx.core/job [*]} *] env-id)))
+    (pull conn '[*] env-id)))
 
 (rf/reg-sub
   :onyx.sim/hide-tasks
@@ -77,6 +77,12 @@
   :<- [::conn]
   (fn [conn [_ env-id]]
     (:onyx.sim/env (pull conn '[:onyx.sim/env] env-id))))
+
+(rf/reg-sub
+  :onyx.core/job
+  :<- [::conn]
+  (fn [conn [_ env-id]]
+    (:onyx.core/job (pull conn '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] env-id))))
 
 
 

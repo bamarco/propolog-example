@@ -18,6 +18,10 @@
               [:div.v-box.stub [:p (str "STUB (cljs-only): " (pr-str (cons c-name args)))]])))
 
 (def button (provide #?(:clj 'button :cljs rc/button)))
+(def h-box (provide #?(:clj 'button :cljs rc/h-box)))
+(def v-box (provide #?(:clj 'button :cljs rc/v-box)))
+(def box (provide #?(:clj 'button :cljs rc/box)))
+(def label (provide #?(:clj 'button :cljs rc/label)))
 (def input-text (provide #?(:clj 'button :cljs rc/input-text)))
 (def input-textarea (provide #?(:clj 'button :cljs rc/input-textarea)))
 (def selection-list (provide #?(:clj 'button :cljs rc/selection-list)))
