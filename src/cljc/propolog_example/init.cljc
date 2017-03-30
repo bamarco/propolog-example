@@ -140,7 +140,8 @@
   )
 
 (defn gen-datascript-edn []
-  (let [catalog (gen-catalog)]
+  (let [catalog (gen-catalog)
+        job-id (gen-temp-id)]
     (cat-into
       ;; Example Data:
       [{:db/id (gen-temp-id)
@@ -158,7 +159,7 @@
         :propolog-example/shape :rect
         :propolog-example/sides 4}
 
-       {:db/id -2000
+       {:db/id job-id
         :propolog/type :onyx.core/job
         :onyx.core/catalog (map :db/id catalog)
         :onyx.core/workflow [[:in :datoms]
@@ -171,12 +172,12 @@
         :onyx.core/lifecycles []
         :onyx.core/flow-conditions []
         }
-       {:db/id -2001
+       {:db/id (gen-temp-id)
         :propolog/title "Propolog Basic Example"
         :propolog/description "Some shapes."
         :propolog/type :propolog/env
         :propolog/name :main-env
-        :onyx.core/job -2000
+        :onyx.core/job job-id
         }
        ]
       catalog)))
