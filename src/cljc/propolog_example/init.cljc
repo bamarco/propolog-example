@@ -139,6 +139,11 @@
    :onyx/doc "where [?s :shape ?shape]" }]
   )
 
+(defn flow-not-nil [[source sinks]]
+  {:flow/from source
+   :flow/to sinks
+   :flow/predicate :propolog-example.catalog/not-nil?})
+
 (defn gen-datascript-edn []
   (let [catalog (gen-catalog)
         job-id (gen-temp-id)]
@@ -170,8 +175,13 @@
                              [:q1 :render]
                              [:q2 :render]]
         :onyx.core/lifecycles []
-        :onyx.core/flow-conditions []
-        }
+        :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
+                                                       :datoms [:rule1 :rule2]
+                                                       :rule1 [:rule3]
+                                                       :rule2 [:q2]
+                                                       :rule3 [:q1]
+                                                       :q1 [:render]
+                                                       :q2 [:render]})}
        {:db/id (gen-temp-id)
         :propolog/title "Propolog Basic Example"
         :propolog/description "Some shapes."
@@ -214,16 +224,18 @@
                 event :propolog-example.event/event}]
             (go (let [uri (uri-fn @conn event)
                       response (<! (http/get uri))]
-                  (log/info "retrieving edn from" uri)
-                  (log/debug "transacting..." (txf @conn (:body response)))
+;;                   (log/info "retrieving edn from" uri)
+;;                   (log/debug "transacting..." (txf @conn (:body response)))
                   (d/transact! conn [[:db.fn/call txf (:body response)]])
-                  (log/debug "post" (-> (d/entity @conn [:propolog/name :main-env])
-                                        :onyx.sim/env
-                                        :tasks
-                                        :in
-                                        :inbox
-                                        )))))))
+;;                   (log/debug "post" (-> (d/entity @conn [:propolog/name :main-env])
+;;                                         :onyx.sim/env
+;;                                         :tasks
+;;                                         :in
+;;                                         :inbox
+;;                                         ))
+                  )))))
     (rf/dispatch [:onyx.api/init [:propolog/name :main-env]])
+    (rf/dispatch [:onyx.sim/import-segments [:propolog/name :main-env] :in])
 ;;     (rf/dispatch [:onyx.api/new-segment [:propolog/name :main-env]
 ;;                   :in {:transactions #{[42 :shape :triangle]
 ;;                                        [42 :sides 3]

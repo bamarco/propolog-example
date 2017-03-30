@@ -1,5 +1,18 @@
 (ns propolog-example.catalog
-  (:require [taoensso.timbre :as log]))
+  (:require [taoensso.timbre :as log]
+            [clojure.spec :as s]))
+
+(def ^:export always (constantly true))
+
+(defn ^:export not-nil?
+  "flow-control - "
+  [event old-seg seg all-new]
+  (not (nil? seg)))
+
+(defn ^:export valid?
+  "flow-control - "
+  [event old-seg seg all-new spec]
+  (s/valid? spec seg))
 
 (defn ^:export datoms-task [{:as segment :keys [transactions]}]
   (for [datom transactions]
@@ -7,7 +20,6 @@
 
 (defn ^:export rule1-task [{:as segment :keys [datom]}]
   (let [[e a v] datom]
-    (log/debug "rule1 attr" a)
     (when (= :sides a)
       {:instance [e v]})))
 

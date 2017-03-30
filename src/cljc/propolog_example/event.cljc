@@ -121,9 +121,9 @@
   (fn [db [_ env-id task-name] [& segments]]
     (let [env (-> (d/entity db env-id)
                   :onyx.sim/env)]
-      (log/debug "event-post" (-> (reduce #(onyx/new-segment %1 task-name %2) env segments)
-                                 :tasks
-                                 task-name
-                                 :inbox))
+;;       (log/debug "event-post" (-> (reduce #(onyx/new-segment %1 task-name %2) env segments)
+;;                                  :tasks
+;;                                  task-name
+;;                                  :inbox))
     [[:db/add env-id :onyx.sim/env (reduce #(onyx/new-segment %1 task-name %2) env segments)]])))
 
