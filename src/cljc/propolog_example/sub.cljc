@@ -67,6 +67,12 @@
     (pull conn '[*] env-id)))
 
 (rf/reg-sub
+  :onyx.sim/import-uri
+  :<- [::conn]
+  (fn [conn [_ env-id]]
+    (:onyx.sim/import-uri (pull conn '[:onyx.sim/import-uri] env-id))))
+
+(rf/reg-sub
   :onyx.sim/hide-tasks
   :<- [::conn]
   (fn [conn [_ env-id]]

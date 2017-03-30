@@ -35,12 +35,15 @@
 ;;       [pretty-onyx-out env out]
       )
 
-(defn pretty-onyx-inbox [env inputs]
-  (if (= 0 (count inputs))
-    [:span]
-    [:div.v-box.inbox
-      [:h3 "Inbox"]
-      [:p.segment (pr-str inputs)]]))
+(defn pretty-onyx-inbox [env task-name inputs]
+  (let [import-uri (listen [:onyx.sim/import-uri [:propolog/name :main-env]])]
+;;     (if (= 0 (count inputs))
+;;       [:span]
+      [:div.v-box.inbox
+       [:h3 "Inbox"]
+       (flui/input-text :model import-uri :on-change #(rf/dispatch [:onyx.sim/import-uri [:propolog/name :main-env] task-name %]))
+       (flui/button :label "Import Segments" :on-click #(rf/dispatch [:onyx.sim/import-segments [:propolog/name :main-env] task-name]))
+       [:p.segment (pr-str inputs)]]))
 
 (defn task-box [env task-name]
   (let [{:keys [inbox outputs]} (get-in env [:tasks task-name])]
@@ -48,7 +51,7 @@
     [:div.v-box.task
      [:h2 task-name]
      (flui/button :label "Hide" :on-click #(rf/dispatch [:onyx.sim/hide-task [:propolog/name :main-env] task-name]))
-     (when inbox (flui/component pretty-onyx-inbox env inbox))
+     (flui/component pretty-onyx-inbox env task-name inbox)
      (when outputs (flui/component pretty-onyx-outbox env outputs))]))
 
 (defn pretty-onyx [env & {:keys [hidden]}]
@@ -78,7 +81,7 @@
     [:div.v-box
      [:h1 (:propolog/title env)]
      [:p (:propolog/description env)]
-     [env-info onyx-env]
+;;      [env-info onyx-env]
      [:h2 "Onyx Simulation"]
      (flui/h-box
        :children

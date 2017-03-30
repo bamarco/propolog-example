@@ -1,0 +1,12 @@
+[
+  {:transactions
+   #{[42 :shape :triangle]
+     [42 :sides 3]
+     [43 :shape :square]
+     [43 :sides 4]
+     [44 :shape :rect]
+     [44 :sides 4]
+     [45 :shape :circle]
+     [45 :sides 1]
+     }}
+  ]

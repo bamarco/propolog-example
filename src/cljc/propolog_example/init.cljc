@@ -1,5 +1,5 @@
 (ns propolog-example.init
-;;   #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]]))
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]]))
   (:require [taoensso.timbre :as log]
             [re-frame.core :as rf]
             [datascript.core :as d]
@@ -177,6 +177,7 @@
         :propolog/description "Some shapes."
         :propolog/type :propolog/env
         :propolog/name :main-env
+        :onyx.sim/import-uri "example.edn"
         :onyx.sim/speed 1.0
         :onyx.sim/running false
         :onyx.sim/hide-tasks #{}
@@ -205,12 +206,29 @@
       :propolog-example.event/datascript
       (fn [{tx :propolog-example.event/tx}]
         (d/transact! conn tx)))
+    #?(:cljs
+        (re-frame.core/reg-fx
+          :propolog-example.event/datascript-async
+          (fn [{txf :propolog-example.event/txf
+                uri-fn :propolog-example.event/uri-fn
+                event :propolog-example.event/event}]
+            (go (let [uri (apply uri-fn @conn event)
+                      response (<! (http/get uri))]
+                  (log/info "retrieving edn from" uri)
+                  (log/debug "transacting..." (txf @conn (:body response)))
+                  (d/transact! conn [[:db.fn/call txf (:body response)]])
+                  (log/debug "post" (-> (d/entity @conn [:propolog/name :main-env])
+                                        :onyx.sim/env
+                                        :tasks
+                                        :in
+                                        :inbox
+                                        )))))))
     (rf/dispatch [:onyx.api/init [:propolog/name :main-env]])
-    (rf/dispatch [:onyx.api/new-segment [:propolog/name :main-env]
-                  :in {:transactions #{[42 :shape :triangle]
-                                       [42 :sides 3]
-                                       [43 :shape :square]
-                                       [43 :sides 4]
-                                       [44 :shape :rect]
-                                       [44 :sides 4]}}]
-    )))
+;;     (rf/dispatch [:onyx.api/new-segment [:propolog/name :main-env]
+;;                   :in {:transactions #{[42 :shape :triangle]
+;;                                        [42 :sides 3]
+;;                                        [43 :shape :square]
+;;                                        [43 :sides 4]
+;;                                        [44 :shape :rect]
+;;                                        [44 :sides 4]}}])
+    ))
