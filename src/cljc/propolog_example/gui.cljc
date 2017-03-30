@@ -4,7 +4,9 @@
             [propolog-example.sub :as sub :refer [listen]]
             [propolog-example.onyx :as onyx]
             [propolog-example.flui :as flui]
-            [propolog-example.utils :as utils]))
+            [propolog-example.utils :as utils]
+            [clojure.set :refer [map-invert]]
+            ))
 
 ;; (defn pretty-onyx-out [env out]
 ;; ;;   (cond
@@ -70,22 +72,23 @@
         onyx-env (listen [:onyx.sim/env [:propolog/name :main-env]])
         hidden-tasks (listen [:onyx.sim/hide-tasks [:propolog/name :main-env]])
         job (listen [:onyx.core/job [:propolog/name :main-env]])
-        tasks (:onyx.core/catalog job)
-        visible-tasks (into #{} (remove (or hidden-tasks #{}) (:sorted-tasks onyx-env)))
-        ];;(:onyx.sim/env env)]
+        catalog (into {} (map (juxt :onyx/name identity) (:onyx.core/catalog job)))
+        sorted-tasks (map catalog (:sorted-tasks onyx-env))
+        visible-tasks (into #{} (remove (or hidden-tasks #{}) (:sorted-tasks onyx-env)))]
     [:div.v-box
      [:h1 (:propolog/title env)]
      [:p (:propolog/description env)]
-;;      [env-info onyx-env]
+     [env-info onyx-env]
      [:h2 "Onyx Simulation"]
-     [:div.h-box
-      (flui/button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
-      (flui/button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
-      (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
+     (flui/h-box
+       :children
+       [(flui/button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
+        (flui/button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
+        (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))])
      (flui/h-box
        :children
        [(flui/label :label "Hidden Tasks:")
-        (flui/selection-list :choices tasks
+        (flui/selection-list :choices sorted-tasks
                              :model hidden-tasks
                              :id-fn :onyx/name
                              :max-height "8em"
