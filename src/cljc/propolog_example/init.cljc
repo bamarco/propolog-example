@@ -177,6 +177,9 @@
         :propolog/description "Some shapes."
         :propolog/type :propolog/env
         :propolog/name :main-env
+        :onyx.sim/speed 1.0
+        :onyx.sim/running false
+        :onyx.sim/hide-tasks #{}
         :onyx.core/job job-id
         }
        ]

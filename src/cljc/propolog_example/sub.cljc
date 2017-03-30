@@ -26,8 +26,8 @@
 
 (def q
   #?(:cljs (comp deref posh/q)
-    :clj (fn [q conn & args]
-           (apply d/q @conn args))))
+    :clj (fn [query conn & args]
+           (apply d/q query @conn args))))
 
 (def pull
   #?(:cljs (comp deref posh/pull)
@@ -63,16 +63,20 @@
 (rf/reg-sub
   ::propolog-env
   :<- [::conn]
-  (fn [conn [_ e]]
-    (pull conn '[{:onyx.core/job [*]} *] e)
-    ))
+  (fn [conn [_ env-id]]
+    (pull conn '[{:onyx.core/job [*]} *] env-id)))
 
 (rf/reg-sub
-  ::onyx-env
+  :onyx.sim/hide-tasks
   :<- [::conn]
-  (fn [conn [_ e]]
-    (:onyx.core/env (pull conn '[:onyx.core/env] e))
-    ))
+  (fn [conn [_ env-id]]
+    (:onyx.sim/hide-tasks (pull conn '[:onyx.sim/hide-tasks] env-id))))
+
+(rf/reg-sub
+  :onyx.sim/env
+  :<- [::conn]
+  (fn [conn [_ env-id]]
+    (:onyx.sim/env (pull conn '[:onyx.sim/env] env-id))))
 
 
 

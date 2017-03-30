@@ -1,22 +1,10 @@
 (ns propolog-example.gui
   (:require [taoensso.timbre :as log]
             [re-frame.core :as rf]
-            #?(:cljs [re-com.core :as re-com])
             [propolog-example.sub :as sub :refer [listen]]
             [propolog-example.onyx :as onyx]
+            [propolog-example.flui :as flui]
             [propolog-example.utils :as utils]))
-
-(defn component
-  "Because you can't use reagent on the serverside. :("
-  [f & args]
-  #?(:cljs (into [f] args)
-     :clj (apply f args)))
-
-(defn button [& {:as args :keys [label]}]
-  #?(:cljs (utils/mapply component re-com/button args)
-     :clj (component (fn [& {:keys [label]}]
-                            [:p.fake-button (str "JS-only button: " label)]
-                            ))))
 
 ;; (defn pretty-onyx-out [env out]
 ;; ;;   (cond
@@ -57,20 +45,20 @@
 ;;     (log/debug "task-name" (get-in env [:tasks task-name]))
     [:div.v-box.task
      [:h2 task-name]
-     (when inbox [pretty-onyx-inbox env inbox])
-     (when outputs [pretty-onyx-outbox env outputs])]))
+     (when inbox (flui/component pretty-onyx-inbox env inbox))
+     (when outputs (flui/component pretty-onyx-outbox env outputs))]))
 
-(defn pretty-onyx [env]
+(defn pretty-onyx [env & {:keys [hidden]}]
   (let [env-data (onyx/env-summary env)]
      (into
        [:div.v-box
         [:p (str "Next Action: " (pr-str (:next-action env-data)))]]
         (for [task-name
 ;;               (keys (:tasks env))
-              (:sorted-tasks env)
+              (remove (or hidden #{}) (:sorted-tasks env))
               ]
           ^{:key (:onyx/name task-name)}
-          [task-box env task-name]))))
+          (flui/component task-box env task-name)))))
 
 (defn env-info [env]
   [:div
@@ -79,21 +67,22 @@
 
 (defn onyx-sim []
   (let [env (listen [:propolog-example.sub/propolog-env [:propolog/name :main-env]])
-        onyx-env (:onyx.core/env env)]
+        onyx-env (listen [:onyx.sim/env [:propolog/name :main-env]])
+        hidden-tasks (listen [:onyx.sim/hide-tasks [:propolog/name :main-env]])];;(:onyx.sim/env env)]
     [:div.v-box
      [:h1 (:propolog/title env)]
      [:p (:propolog/description env)]
 ;;      [env-info onyx-env]
      [:h2 "Onyx Simulation"]
      [:div.h-box
-      (button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
-      (button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
-      (button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
-  (component pretty-onyx onyx-env)
+      (flui/button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
+      (flui/button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
+      (flui/button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
+     [:div.h-box
+      [:p "Hide Tasks:"]
+      (flui/input-text :model (pr-str hidden-tasks) :on-change #(rf/dispatch [:onyx.sim/hide-tasks [:propolog/name :main-env] %]))]
+     (flui/component pretty-onyx onyx-env :hidden hidden-tasks)
       ]))
 
 (defn root []
-  [:div.v-box
-
-   [onyx-sim]
-   ])
+  (flui/component onyx-sim))

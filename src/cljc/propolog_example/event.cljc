@@ -3,7 +3,10 @@
             [re-frame.core :as rf]
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
-            [propolog-example.utils :as utils])
+            [propolog-example.utils :as utils]
+            #?(:cljs [cljs.reader :as reader]
+               :clj [clojure.edn :as reader])
+            )
   #?(:cljs (:require-macros [propolog-example.event :refer [reg-event-ds]]))
            )
 
@@ -43,18 +46,18 @@
                   :onyx.core/job
                   ds->onyx)
           ]
-      (log/debug "jobob" job)
-      [[:db/add env-id :onyx.core/env (onyx/init job)]]
+;;       (log/debug "jobob" job)
+      [[:db/add env-id :onyx.sim/env (onyx/init job)]]
        )))
 
 (reg-event-ds
   :onyx.api/new-segment
   (fn [db env-id task segment]
     (let [env (-> (d/entity db env-id)
-                  :onyx.core/env
+                  :onyx.sim/env
                   ds->onyx)]
-      (log/debug "seg" segment)
-      [[:db/add env-id :onyx.core/env (onyx/new-segment env task segment)]]
+;;       (log/debug "seg" segment)
+      [[:db/add env-id :onyx.sim/env (onyx/new-segment env task segment)]]
     )))
 
 
@@ -62,25 +65,31 @@
   :onyx.api/tick
   (fn [db env-id]
     (let [env (-> (d/entity db env-id)
-                  :onyx.core/env
+                  :onyx.sim/env
                   ds->onyx)]
-      [[:db/add env-id :onyx.core/env (onyx/tick env)]]
+      [[:db/add env-id :onyx.sim/env (onyx/tick env)]]
     )))
 
 (reg-event-ds
   :onyx.api/step
   (fn [db env-id]
     (let [env (-> (d/entity db env-id)
-                  :onyx.core/env
+                  :onyx.sim/env
                   ds->onyx)]
-      [[:db/add env-id :onyx.core/env (onyx/step env)]])))
-
+      [[:db/add env-id :onyx.sim/env (onyx/step env)]])))
 
 (reg-event-ds
   :onyx.api/drain
   (fn [db env-id]
     (let [env (-> (d/entity db env-id)
-                  :onyx.core/env
+                  :onyx.sim/env
                   ds->onyx)]
-      [[:db/add env-id :onyx.core/env (onyx/drain env)]])))
+      [[:db/add env-id :onyx.sim/env (onyx/drain env)]])))
+
+
+
+(reg-event-ds
+  :onyx.sim/hide-tasks
+  (fn [db env-id tasks]
+    [[:db/add env-id :onyx.sim/hide-tasks (reader/read-string tasks)]]))
 
