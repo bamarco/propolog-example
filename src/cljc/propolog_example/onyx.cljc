@@ -10,7 +10,7 @@
 (def init        onyx/init)
 (def tick        onyx/tick)
 (def drain       onyx/drain)
-(def new-segment       onyx/new-segment)
+(def new-segment onyx/new-segment)
 
 (defn out
   "Returns outputs of onyx job presumably after draining."

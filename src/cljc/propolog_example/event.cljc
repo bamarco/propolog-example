@@ -3,92 +3,84 @@
             [re-frame.core :as rf]
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
-            [propolog-example.utils :as utils]))
+            [propolog-example.utils :as utils])
+  #?(:cljs (:require-macros [propolog-example.event :refer [reg-event-ds]]))
+           )
 
-(defonce onyx-batch-size 20)
-
-(rf/reg-event-fx
-  ::onyx-tick
-  (fn [{:keys [db]} _]
-    (log/debug "env: " (onyx/env-summary (:env db)))
-    {:db (update-in db [:env] onyx/tick)}
-    ))
-
-(rf/reg-event-fx
-  ::onyx-step
-  (fn [{:keys [db]} _]
-;;     (log/debug "env: " (onyx/env-summary (:env db)))
-    {:db (update-in db [:env] onyx/step)}
-    ))
+;; (def map-event
+;;   (re-frame.core/->interceptor
+;;     :id      ::map-event
+;;     :before  (fn [context]
+;;                (let [as-map-fn #(let [_ event] event)]
+;;                  (update-in context [:coeffects :event] as-map-fn)
+;;                  ))))
 
 
-(rf/reg-event-fx
-  ::onyx-drain
-  (fn [{:keys [db]}  _]
-;;     (log/debug "env: " (onyx/env-summary (:env db)))
-    {:db (update-in db [:env] onyx/drain)}
-    ))
+;; ???: Can we do this as an interceptor?
+;; ???: Can we work off of the signal graph if we are doing crdt instead of using a transactor?
+#?(:clj
+    (defmacro reg-event-ds [k f]
+      `(re-frame.core/reg-event-fx
+         ~k
+         (fn [_# [_# & event#]]
+           ;; NOTE: ::datascript fx is registered in init.cljc
+           {::datascript {::tx [(into [:db.fn/call ~f] event#)]}})
+           )))
 
-(rf/reg-event-fx
-  ::init
-  (fn [_ _]
-    (let [job {:catalog [{:onyx/type :input
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/name :in}
+(defn ds->onyx [datascript-map]
+  (-> datascript-map
+;;       (dissoc :db/id)
+;;       (dissoc :propolog/type)
+      (clojure.set/rename-keys {:onyx.core/catalog :catalog
+                                :onyx.core/workflow :workflow
+                                :onyx.core/lifecycles :lifecycles
+                                :onyx.core/flow-conditions :flow-conditions})))
 
-                         {:onyx/type :output
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/name :render}
+(reg-event-ds
+  :onyx.api/init
+  (fn [db env-id]
+    (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] env-id)
+                  :onyx.core/job
+                  ds->onyx)
+          ]
+      (log/debug "jobob" job)
+      [[:db/add env-id :onyx.core/env (onyx/init job)]]
+       )))
 
-                         {:onyx/type :function
-                          :onyx/name :datoms
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/datoms-task}
+(reg-event-ds
+  :onyx.api/new-segment
+  (fn [db env-id task segment]
+    (let [env (-> (d/entity db env-id)
+                  :onyx.core/env
+                  ds->onyx)]
+      (log/debug "seg" segment)
+      [[:db/add env-id :onyx.core/env (onyx/new-segment env task segment)]]
+    )))
 
-                         {:onyx/type :function
-                          :onyx/name :rule1
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/rule1-task
-                          :onyx/doc "[(rule1? ?s ?sides) [?s :sides ?sides]]"}
 
-                         {:onyx/type :function
-                          :onyx/name :rule2
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/rule2-task
-                          :onyx/doc "[(rule2? ?s ?shape) [?s :shape ?shape]]"}
+(reg-event-ds
+  :onyx.api/tick
+  (fn [db env-id]
+    (let [env (-> (d/entity db env-id)
+                  :onyx.core/env
+                  ds->onyx)]
+      [[:db/add env-id :onyx.core/env (onyx/tick env)]]
+    )))
 
-                         {:onyx/type :function
-                          :onyx/name :rule3
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/rule3-task
-                          :onyx/doc "[(rule3? ?s) [?s :sides 4]]"}
+(reg-event-ds
+  :onyx.api/step
+  (fn [db env-id]
+    (let [env (-> (d/entity db env-id)
+                  :onyx.core/env
+                  ds->onyx)]
+      [[:db/add env-id :onyx.core/env (onyx/step env)]])))
 
-                         {:onyx/type :function
-                          :onyx/name :q1
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/q1-task
-                          :onyx/doc "where [?s :sides 4] [?s :shape ?shape]"}
 
-                         {:onyx/type :function
-                          :onyx/name :q2
-                          :onyx/batch-size onyx-batch-size
-                          :onyx/fn :propolog-example.catalog/q2-task
-                          :onyx/doc "where [?s :shape ?shape]" }]
-               :workflow [[:in :datoms]
-                          [:datoms :rule1] [:rule1 :rule3]
-                          [:datoms :rule2]
-                          [:rule3 :q1]
-                          [:rule2 :q2]
-                          [:q1 :render]
-                          [:q2 :render]]
-               :lifecycles []
-               :flow-conditions []}]
-      {:db {;;:job job
-            :env (-> (onyx/init job)
-                     (onyx/new-segment :in {:transactions #{[42 :shape :triangle]
-                                                            [42 :sides 3]
-                                                            [43 :shape :square]
-                                                            [43 :sides 4]
-                                                            [44 :shape :rect]
-                                                            [44 :sides 4]}}))}})))
+(reg-event-ds
+  :onyx.api/drain
+  (fn [db env-id]
+    (let [env (-> (d/entity db env-id)
+                  :onyx.core/env
+                  ds->onyx)]
+      [[:db/add env-id :onyx.core/env (onyx/drain env)]])))
 

@@ -5,9 +5,20 @@
             #?(:cljs [posh.reagent :as posh])
             #?(:cljs [reagent.core :refer [atom]])
             [datascript.core :as d]
-            [onyx-local-rt.api :as onyx]
+            [propolog-example.onyx :as onyx]
             [propolog-example.catalog] ;; need these functions for onyx catalog
             ))
+
+;;  ANCESTOR EXAMPLE
+;;  [:find ?child ?ancestor
+;;   :where [ancestor? ?child ?ancestor]
+;;   :in $ %]
+ ;; with rules
+;;  [[(ancestor? ?child ?parent)
+;;    [?child :parent ?parent]]
+;;   [(ancestor? ?child ?ancestor)
+;;    [?child :parent ?x]
+;;    [ancestor? ?x ?ancestor]]]
 
 (defn listen
   [query-v]
@@ -15,54 +26,53 @@
 
 (def q
   #?(:cljs (comp deref posh/q)
-    :clj d/q))
+    :clj (fn [q conn & args]
+           (apply d/q @conn args))))
 
 (def pull
   #?(:cljs (comp deref posh/pull)
-    :clj d/pull))
+    :clj (fn [conn expr eid]
+           (d/pull @conn expr eid))))
 
-;; NOTE: ::conn is registered in :propolog.event/init
+;; NOTE: ::conn is registered in :init.cljc
 
-;; (rf/reg-sub
-;;   ::ds-db
-;;   :-> [::conn]
-;;   (fn [conn _]
-;;     #?(:clj @conn :cljs conn)))
+(rf/reg-sub
+  ::job-ids
+  :<- [::conn]
+  (fn [conn _]
+    (q '[:find [?job]
+         :in $
+         :where
+         [?job :propolog/type :onyx.core/job]] conn)))
 
-;; (rf/reg-sub
-;;   ::catalog
-;;   :-> [::ds-db]
-;;   (fn [db _]
-;;     (utils/cat-into
-;;       #{}
-;;       (q
-;;         '{:find [?c]
-;;           :in $
-;;           :where
-;;           [?c :onyx/type :input]}
-;;         db)
-;;       (q
-;;         '{:find [?c]
-;;           :in $
-;;           :where
-;;           [?c :onyx/type :output]}
-;;         db)
-;;       (q
-;;         '{:find [?c]
-;;           :in $
-;;           :where
-;;           [?c :onyx/type :function]}
-;;         db))))
+(rf/reg-sub
+  ::jobs
+  :<- [::conn]
+  :<- [::job-ids]
+  (fn [[conn job-ids] _]
+    (for [id job-ids]
+      (pull conn '[{:onyx.core/catalog [*]} *] id))))
 
 (rf/reg-sub
   ::onyx-job
-  (fn [db _]
-    (:job db)))
+  :<- [::jobs]
+  (fn [jobs _]
+    (first jobs)
+    ))
+
+(rf/reg-sub
+  ::propolog-env
+  :<- [::conn]
+  (fn [conn [_ e]]
+    (pull conn '[{:onyx.core/job [*]} *] e)
+    ))
 
 (rf/reg-sub
   ::onyx-env
-  (fn [db _]
-    (:env db)))
+  :<- [::conn]
+  (fn [conn [_ e]]
+    (:onyx.core/env (pull conn '[:onyx.core/env] e))
+    ))
 
 
 

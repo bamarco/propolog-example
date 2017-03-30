@@ -78,16 +78,22 @@
    [:p (str (:sorted-tasks env))]])
 
 (defn onyx-sim []
-  (let [env (listen [:propolog-example.sub/onyx-env])]
+  (let [env (listen [:propolog-example.sub/propolog-env [:propolog/name :main-env]])
+        onyx-env (:onyx.core/env env)]
     [:div.v-box
-;;      [env-info env]
+     [:h1 (:propolog/title env)]
+     [:p (:propolog/description env)]
+;;      [env-info onyx-env]
+     [:h2 "Onyx Simulation"]
      [:div.h-box
-      (button :label "Tick" :on-click #(rf/dispatch [:propolog-example.event/onyx-tick]))
-      (button :label "Step" :on-click #(rf/dispatch [:propolog-example.event/onyx-step]))
-      (button :label "Drain" :on-click #(rf/dispatch [:propolog-example.event/onyx-drain]))]
-  (component pretty-onyx env)]))
+      (button :label "Tick" :on-click #(rf/dispatch [:onyx.api/tick [:propolog/name :main-env]]))
+      (button :label "Step" :on-click #(rf/dispatch [:onyx.api/step [:propolog/name :main-env]]))
+      (button :label "Drain" :on-click #(rf/dispatch [:onyx.api/drain [:propolog/name :main-env]]))]
+  (component pretty-onyx onyx-env)
+      ]))
 
 (defn root []
   [:div.v-box
-   [:h1 "Hello, Onyx!"]
-   [onyx-sim]])
+
+   [onyx-sim]
+   ])
