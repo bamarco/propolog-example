@@ -212,7 +212,7 @@
           (fn [{txf :propolog-example.event/txf
                 uri-fn :propolog-example.event/uri-fn
                 event :propolog-example.event/event}]
-            (go (let [uri (apply uri-fn @conn event)
+            (go (let [uri (uri-fn @conn event)
                       response (<! (http/get uri))]
                   (log/info "retrieving edn from" uri)
                   (log/debug "transacting..." (txf @conn (:body response)))
