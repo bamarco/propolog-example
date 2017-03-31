@@ -43,7 +43,7 @@
     (q '[:find [?job]
          :in $
          :where
-         [?job :propolog/type :onyx.core/job]] conn)))
+         [?job :onyx.sim/type :onyx.core/job]] conn)))
 
 (rf/reg-sub
   ::jobs
@@ -63,32 +63,35 @@
 (rf/reg-sub
   ::propolog-env
   :<- [::conn]
-  (fn [conn [_ env-id]]
-    (pull conn '[*] env-id)))
+  (fn [conn [_ sim-id]]
+    (assoc
+      (pull conn '[{:onyx.core/job [{:onyx.core/catalog [*]} *]} *] sim-id)
+      :onyx.sim/dispatch rf/dispatch
+      :onyx.sim/listen listen)))
 
 (rf/reg-sub
   :onyx.sim/import-uri
   :<- [::conn]
-  (fn [conn [_ env-id]]
-    (:onyx.sim/import-uri (pull conn '[:onyx.sim/import-uri] env-id))))
+  (fn [conn [_ sim-id]]
+    (:onyx.sim/import-uri (pull conn '[:onyx.sim/import-uri] sim-id))))
 
 (rf/reg-sub
-  :onyx.sim/hide-tasks
+  :onyx.sim/hidden-tasks
   :<- [::conn]
-  (fn [conn [_ env-id]]
-    (:onyx.sim/hide-tasks (pull conn '[:onyx.sim/hide-tasks] env-id))))
+  (fn [conn [_ sim-id]]
+    (:onyx.sim/hidden-tasks (pull conn '[:onyx.sim/hidden-tasks] sim-id))))
 
 (rf/reg-sub
   :onyx.sim/env
   :<- [::conn]
-  (fn [conn [_ env-id]]
-    (:onyx.sim/env (pull conn '[:onyx.sim/env] env-id))))
+  (fn [conn [_ sim-id]]
+    (:onyx.sim/env (pull conn '[:onyx.sim/env] sim-id))))
 
 (rf/reg-sub
   :onyx.core/job
   :<- [::conn]
-  (fn [conn [_ env-id]]
-    (:onyx.core/job (pull conn '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] env-id))))
+  (fn [conn [_ sim-id]]
+    (:onyx.core/job (pull conn '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id))))
 
 
 

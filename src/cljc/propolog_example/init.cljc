@@ -149,23 +149,24 @@
         job-id (gen-temp-id)]
     (cat-into
       ;; Example Data:
-      [{:db/id (gen-temp-id)
-        :propolog-example/type :propolog-example/shape
-        :propolog-example/shape :triangle
-        :propolog-example/sides 3}
+      [
+;;        {:db/id (gen-temp-id)
+;;         :propolog-example/type :propolog-example/shape
+;;         :propolog-example/shape :triangle
+;;         :propolog-example/sides 3}
 
-       {:db/id (gen-temp-id)
-        :propolog-example/type :propolog-example/shape
-        :propolog-example/shape :square
-        :propolog-example/sides 4}
+;;        {:db/id (gen-temp-id)
+;;         :propolog-example/type :propolog-example/shape
+;;         :propolog-example/shape :square
+;;         :propolog-example/sides 4}
 
-       {:db/id (gen-temp-id)
-        :propolog/type :propolog/shape
-        :propolog-example/shape :rect
-        :propolog-example/sides 4}
+;;        {:db/id (gen-temp-id)
+;;         :propolog/type :propolog/shape
+;;         :propolog-example/shape :rect
+;;         :propolog-example/sides 4}
 
        {:db/id job-id
-        :propolog/type :onyx.core/job
+        :onyx.sim/type :onyx.core/job
         :onyx.core/catalog (map :db/id catalog)
         :onyx.core/workflow [[:in :datoms]
                              [:datoms :rule1] [:rule1 :rule3]
@@ -183,28 +184,76 @@
                                                        :q1 [:render]
                                                        :q2 [:render]})}
        {:db/id (gen-temp-id)
-        :propolog/title "Propolog Basic Example"
-        :propolog/description "Some shapes."
-        :propolog/type :propolog/env
-        :propolog/name :main-env
+        :onyx.sim/title "Propolog Basic Example"
+        :onyx.sim/description "Some shapes."
+        :onyx.sim/type :onyx.sim/sim
+        :onyx/name :main-env
         :onyx.sim/import-uri "example.edn"
         :onyx.sim/speed 1.0
         :onyx.sim/running false
-        :onyx.sim/hide-tasks #{}
+        :onyx.sim/hidden-tasks #{}
         :onyx.core/job job-id
         }
        ]
       catalog)))
 
+(defn gen-render-catalog []
+  [
+  ;; Onyx Catalog
+  {:db/id (gen-temp-id)
+   :onyx/type :input
+   :onyx/batch-size onyx-batch-size
+   :onyx/name :in}
+
+  {:db/id (gen-temp-id)
+   :onyx/type :output
+   :onyx/batch-size onyx-batch-size
+   :onyx/name :render}
+
+  {:db/id (gen-temp-id)
+   :onyx/type :function
+   :onyx/name :match
+   :onyx/batch-size onyx-batch-size
+   :onyx/fn :propolog-example.catalog/render-match}
+    ])
+
+(defn gen-render-edn []
+  (let [catalog (gen-render-catalog)
+        job-id (gen-temp-id)]
+    (cat-into
+      ;; Example Data:
+      [
+       {:db/id job-id
+        :onyx.sim/type :onyx.core/job
+        :onyx.core/catalog (map :db/id catalog)
+        :onyx.core/workflow [[:in :match] [:match :render]]
+        :onyx.core/lifecycles []
+        :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
+                                                       :match [:render]})}
+       {:db/id (gen-temp-id)
+        :onyx.sim/title "Render Network"
+        :onyx.sim/description "Right now it has one task which is a giant match statement. We can break this match task up into tasks. For dat.view I think we'll end up using selectors (either spector or kiio) to determine what containers things render into, but maybe not."
+        :onyx.sim/type :onyx.sim/sim
+        :onyx/name :render-env
+        :onyx.sim/import-uri "example.edn"
+        :onyx.sim/speed 1.0
+        :onyx.sim/running false
+        :onyx.sim/hidden-tasks #{}
+        :onyx.core/job job-id
+        }
+       ]
+      catalog)))
+
+
 (defonce schema {:onyx.core/catalog {:db/cardinality :db.cardinality/many
                                      :db/type :db.type/ref}
-                 :propolog/name {:db/unique :db.unique/identity}
+                 :onyx/name {:db/unique :db.unique/identity}
                  :onyx.core/job {:db/type :db.type/ref}})
 
 (defn init []
   (let [conn (d/create-conn schema)]
     #?(:cljs (posh/posh! conn))
-    (d/transact! conn (gen-datascript-edn))
+    (d/transact! conn (cat-into [] (gen-datascript-edn) (gen-render-edn)))
 ;;     #?(:cljs
 ;;         (go (let [response (<! (http/get "propolog-example.edn"))]
 ;;               ;; FIXME: Transacting directly in an event handler is bad. Change to the other kind of fx handler.
@@ -227,16 +276,16 @@
 ;;                   (log/info "retrieving edn from" uri)
 ;;                   (log/debug "transacting..." (txf @conn (:body response)))
                   (d/transact! conn [[:db.fn/call txf (:body response)]])
-;;                   (log/debug "post" (-> (d/entity @conn [:propolog/name :main-env])
-;;                                         :onyx.sim/env
+;;                   (log/debug "post" (-> (d/entity @conn [:onyx/name :main-env])
+;;                                         :onyx.sim/sim
 ;;                                         :tasks
 ;;                                         :in
 ;;                                         :inbox
 ;;                                         ))
                   )))))
-    (rf/dispatch [:onyx.api/init [:propolog/name :main-env]])
-    (rf/dispatch [:onyx.sim/import-segments [:propolog/name :main-env] :in])
-;;     (rf/dispatch [:onyx.api/new-segment [:propolog/name :main-env]
+    (rf/dispatch [:onyx.api/init [:onyx/name :main-env]])
+    (rf/dispatch [:onyx.sim/import-segments [:onyx/name :main-env] :in])
+;;     (rf/dispatch [:onyx.api/new-segment [:onyx/name :main-env]
 ;;                   :in {:transactions #{[42 :shape :triangle]
 ;;                                        [42 :sides 3]
 ;;                                        [43 :shape :square]

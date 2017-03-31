@@ -47,17 +47,17 @@
 (reg-event-ds
   :reagent/next-tick
   (fn [db _]
-    (let [env (d/entity db [:propolog/name :main-env])
+    (let [env (d/entity db [:onyx/name :main-env])
           running (:onyx.sim/running env)
           env (:onyx.sim/env env)]
       (when running
         (re-trigger-timer)
-        [[:db/add [:propolog/name :main-env] :onyx.sim/env (onyx/tick env)]]))))
+        [[:db/add [:onyx/name :main-env] :onyx.sim/env (onyx/tick env)]]))))
 
 (defn ds->onyx [datascript-map]
   (-> datascript-map
 ;;       (dissoc :db/id)
-;;       (dissoc :propolog/type)
+;;       (dissoc :onyx.sim/type)
       (clojure.set/rename-keys {:onyx.core/catalog :catalog
                                 :onyx.core/workflow :workflow
                                 :onyx.core/lifecycles :lifecycles
@@ -65,96 +65,96 @@
 
 (reg-event-ds
   :onyx.api/init
-  (fn [db [_ env-id]]
-    (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] env-id)
+  (fn [db [_ sim-id]]
+    (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id)
                   :onyx.core/job
                   ds->onyx)
           ]
 ;;       (log/debug "jobob" job)
-      [[:db/add env-id :onyx.sim/env (onyx/init job)]]
+      [[:db/add sim-id :onyx.sim/env (onyx/init job)]]
        )))
 
 (reg-event-ds
   :onyx.api/new-segment
-  (fn [db [_ env-id task segment]]
-    (let [env (-> (d/entity db env-id)
+  (fn [db [_ sim-id task segment]]
+    (let [env (-> (d/entity db sim-id)
                   :onyx.sim/env)]
 ;;       (log/debug "seg" segment)
-      [[:db/add env-id :onyx.sim/env (onyx/new-segment env task segment)]]
+      [[:db/add sim-id :onyx.sim/env (onyx/new-segment env task segment)]]
     )))
 
 (reg-event-ds
   :onyx.api/tick
-  (fn [db [_ env-id]]
-    (let [env (-> (d/entity db env-id)
+  (fn [db [_ sim-id]]
+    (let [env (-> (d/entity db sim-id)
                   :onyx.sim/env)]
-      [[:db/add env-id :onyx.sim/env (onyx/tick env)]]
+      [[:db/add sim-id :onyx.sim/env (onyx/tick env)]]
     )))
 
 (reg-event-ds
   :onyx.api/step
-  (fn [db [_ env-id]]
-    (let [env (-> (d/entity db env-id)
+  (fn [db [_ sim-id]]
+    (let [env (-> (d/entity db sim-id)
                   :onyx.sim/env)]
-      [[:db/add env-id :onyx.sim/env (onyx/step env)]])))
+      [[:db/add sim-id :onyx.sim/env (onyx/step env)]])))
 
 (reg-event-ds
   :onyx.api/drain
-  (fn [db [_ env-id]]
-    (let [env (-> (d/entity db env-id)
+  (fn [db [_ sim-id]]
+    (let [env (-> (d/entity db sim-id)
                   :onyx.sim/env
                   ds->onyx)]
-      [[:db/add env-id :onyx.sim/env (onyx/drain env)]])))
+      [[:db/add sim-id :onyx.sim/env (onyx/drain env)]])))
 
 (reg-event-ds
   :onyx.api/start
-  (fn [db [_ env-id]]
-    (let [;;env (-> (d/entity db env-id)
+  (fn [db [_ sim-id]]
+    (let [;;env (-> (d/entity db sim-id)
           ;;        :onyx.sim/env)
            ]
       (re-trigger-timer)
-      [[:db/add env-id :onyx.sim/running true]]
+      [[:db/add sim-id :onyx.sim/running true]]
     )))
 
 (reg-event-ds
   :onyx.api/stop
-  (fn [db [_ env-id]]
-    (let [;;env (-> (d/entity db env-id)
+  (fn [db [_ sim-id]]
+    (let [;;env (-> (d/entity db sim-id)
           ;;        :onyx.sim/env)
           ]
-      [[:db/add env-id :onyx.sim/running false]])))
+      [[:db/add sim-id :onyx.sim/running false]])))
 
 (reg-event-ds
   :onyx.sim/hide-task
-  (fn [db [_ env-id task-name]]
-    (let [hidden (-> (d/entity db env-id)
-                     :onyx.sim/hide-tasks)]
-    [[:db/add env-id :onyx.sim/hide-tasks (conj hidden task-name)]])))
+  (fn [db [_ sim-id task-name]]
+    (let [hidden (-> (d/entity db sim-id)
+                     :onyx.sim/hidden-tasks)]
+    [[:db/add sim-id :onyx.sim/hidden-tasks (conj hidden task-name)]])))
 
 (reg-event-ds
   :onyx.sim/hide-tasks
-  (fn [db [_ env-id tasks]]
-    [[:db/add env-id :onyx.sim/hide-tasks tasks]]))
+  (fn [db [_ sim-id tasks]]
+    [[:db/add sim-id :onyx.sim/hidden-tasks tasks]]))
 
 (reg-event-ds
   :onyx.sim/import-uri
-  (fn [db [_ env-id task-name uri]]
-    (let [;;task-id (-> (d/entity db env-id))
+  (fn [db [_ sim-id task-name uri]]
+    (let [;;task-id (-> (d/entity db sim-id))
           ]
-    [[:db/add env-id :onyx.sym/import-uri uri]]
+    [[:db/add sim-id :onyx.sym/import-uri uri]]
     )))
 
 (reg-event-ds-async
   :onyx.sim/import-segments
-  (fn [db [_ env-id task-name]]
-    (let [uri (:onyx.sim/import-uri (d/pull db '[:onyx.sim/import-uri] env-id))]
+  (fn [db [_ sim-id task-name]]
+    (let [uri (:onyx.sim/import-uri (d/pull db '[:onyx.sim/import-uri] sim-id))]
       uri))
-  (fn [db [_ env-id task-name] [& segments]]
-    (let [env (-> (d/entity db env-id)
+  (fn [db [_ sim-id task-name] [& segments]]
+    (let [env (-> (d/entity db sim-id)
                   :onyx.sim/env)]
 ;;       (log/debug "event-post" (-> (reduce #(onyx/new-segment %1 task-name %2) env segments)
 ;;                                  :tasks
 ;;                                  task-name
 ;;                                  :inbox))
-    [[:db/add env-id :onyx.sim/env (reduce #(onyx/new-segment %1 task-name %2) env segments)]])))
+    [[:db/add sim-id :onyx.sim/env (reduce #(onyx/new-segment %1 task-name %2) env segments)]])))
 

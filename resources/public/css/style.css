@@ -1,9 +1,19 @@
-h1 {
-  text-decoration: underline;
+.rc-title {
+  font-family: "Arvo", "Times New Roman", Times, serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Arvo", "Times New Roman", Times, serif;
+.level1 {
+  font-size: 2rem;
+  font-variant:   small-caps;
+}
+.level2 {
+  font-size: 1.5rem;
+}
+.level3 {
+  font-size: 1.25rem;
+}
+.level4 {
+  font-size: 1rem;
 }
 
 .html, .body {
@@ -29,6 +39,21 @@ h1, h2, h3, h4, h5, h6 {
   padding-right: 1ch;
   padding-top: .5em;
   padding-bottom: .5em;
+}
+
+.onyx-pc {
+/*   ???: how to get horizontal elements centered or aligned bottom sp you can put fields next to labels
+  align-items: center;
+  justify-content: center; */
+}
+
+.rc-code, code {
+/*     margin-right:   0.2em;
+    border-radius:  4px;
+    color:          #333;
+    background:     #eee;
+    border:         1px solid #ddd;
+    padding:        0.1em 0.3em; */
 }
 
 .segment {
