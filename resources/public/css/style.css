@@ -1,5 +1,11 @@
 .rc-title {
   font-family: "Arvo", "Times New Roman", Times, serif;
+  color: #fc4a1a;
+/*   padding-left:1ch; */
+}
+
+.rc-label {
+  margin-right: 1ch;
 }
 
 .level1 {
@@ -16,25 +22,35 @@
   font-size: 1rem;
 }
 
-.html, .body {
+html, body {
   font-family "Work Sans", Roboto, "Trebuchet MS", Helvetica, sans-serif;
+  color: #c0b283;
+}
+html {
+/*  TODO: make background absolute */
+  background: radial-gradient(circle at 10% 10%, #111, #aaa);
 }
 
-.task {
-  background-color: LightCyan;
-  margin-top: .5em;
+.onyx-task {
+  background-color: PaleTurquoise;
+  color: black;
+}
+
+.onyx-panel {
+/*   margin-top: .5em;
   margin-bottom: .5em;
   margin-left: 1ch;
-  margin-right: 1ch;
-  padding-left: 1ch;
+  margin-right: 1ch; */
+/*   padding-left: 1ch;
   padding-right: 1ch;
   padding-top: .5em;
-  padding-bottom: .5em;
+  padding-bottom: .5em; */
+  padding: .5rem;
+  margin: .25rem;
 }
 
-.inbox, .outbox {
-  background-color: PaleTurquoise;
-
+.onyx-inbox, .onyx-outbox {
+  background-color: LightCyan;
   padding-left: 1ch;
   padding-right: 1ch;
   padding-top: .5em;

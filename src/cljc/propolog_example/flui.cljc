@@ -25,7 +25,7 @@
     [& {:as args :keys [code child] cl :class}]
     (let [args (-> args
                    (dissoc :code)
-                   (assoc :class (str "rc-code" cl )))
+                   (assoc :class (str "rc-code " cl )))
           code (with-out-str (pprint code))]
       (assert (not child) (str "Code should not have a :child element. Got " child))
       (utils/mapply rc/box :child [:code [:pre code]] args))))

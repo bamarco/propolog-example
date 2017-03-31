@@ -21,10 +21,9 @@
 
 ;; tasks
 (defn ^:export render-match [{:as segment :keys []}]
-;;   (match [segment]
-
-;;      )
-  )
+  (match [segment]
+     :else [:div "fail"]
+     ))
 
 (defn ^:export datoms-task [{:as segment :keys [transactions]}]
   (for [datom transactions]

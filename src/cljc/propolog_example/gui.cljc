@@ -7,8 +7,8 @@
 
 (defn root []
   (let [sim-id [:onyx/name
-;;                 :main-env
-                :render-env
+                :main-env
+;;                 :render-env
                 ]]
     (flui/v-box
       :children

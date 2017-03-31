@@ -6,7 +6,7 @@
             #?(:cljs [reagent.core :refer [atom]])
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
-            [propolog-example.catalog] ;; need these functions for onyx catalog
+            [propolog-example.catalog :as catalog] ;; need these functions for onyx catalog
             ))
 
 ;;  ANCESTOR EXAMPLE
@@ -67,6 +67,7 @@
     (assoc
       (pull conn '[{:onyx.core/job [{:onyx.core/catalog [*]} *]} *] sim-id)
       :onyx.sim/dispatch rf/dispatch
+      :onyx.sim/render catalog/render-match
       :onyx.sim/listen listen)))
 
 (rf/reg-sub
