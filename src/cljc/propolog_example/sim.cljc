@@ -78,7 +78,7 @@
     (flui/v-box
       :class "onyx-sim"
       :children
-      [(flui/title :label (str "Onyx-Sim:" (:onyx.sim/title sim)) :level :level1)
+      [(flui/title :label (str "Onyx-Sim: " (:onyx.sim/title sim)) :level :level1)
        (flui/p (:onyx.sim/description sim))
        (flui/h-box
          :class "onyx-controls"

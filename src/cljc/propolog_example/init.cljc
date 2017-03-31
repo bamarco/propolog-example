@@ -284,6 +284,7 @@
 ;;                                         ))
                   )))))
     (rf/dispatch [:onyx.api/init [:onyx/name :main-env]])
+    (rf/dispatch [:onyx.api/init [:onyx/name :render-env]])
     (rf/dispatch [:onyx.sim/import-segments [:onyx/name :main-env] :in])
 ;;     (rf/dispatch [:onyx.api/new-segment [:onyx/name :main-env]
 ;;                   :in {:transactions #{[42 :shape :triangle]

@@ -1,7 +1,10 @@
 (ns propolog-example.catalog
   (:require [taoensso.timbre :as log]
-            [clojure.spec :as s]))
+            [clojure.spec :as s]
+            #?(:clj  [clojure.core.match :refer [match]]
+               :cljs [cljs.core.match :refer-macros [match]])))
 
+;; Flow-control
 (def ^:export always (constantly true))
 
 (defn ^:export not-nil?
@@ -13,6 +16,15 @@
   "flow-control - "
   [event old-seg seg all-new spec]
   (s/valid? spec seg))
+
+
+
+;; tasks
+(defn ^:export render-match [{:as segment :keys []}]
+;;   (match [segment]
+
+;;      )
+  )
 
 (defn ^:export datoms-task [{:as segment :keys [transactions]}]
   (for [datom transactions]

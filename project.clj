@@ -26,6 +26,7 @@
                  [re-frame "0.9.2"]
                  [re-com "0.9.0"]
                  [cljs-http "0.1.42"]
+                 [org.clojure/core.match "0.3.0-alpha4"]
                  [medley "0.8.2"] ;; kills clojure 1.9 warning
                  ]
 

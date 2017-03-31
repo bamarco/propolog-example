@@ -8,8 +8,7 @@
                :clj [clojure.edn :as reader])
             #?(:cljs [reagent.core :as r])
             )
-  #?(:cljs (:require-macros [propolog-example.event :refer [reg-event-ds reg-event-ds-async]]))
-  )
+  #?(:cljs (:require-macros [propolog-example.event :refer [reg-event-ds reg-event-ds-async]])))
 
 ;; (def map-event
 ;;   (re-frame.core/->interceptor
@@ -40,19 +39,20 @@
                                 ::event event#
                                 ::txf (fn [db# resp#] (~txf db# event# resp#))}}))))
 
-#?(:cljs
-    (defn re-trigger-timer []
-      (r/next-tick (fn [] (rf/dispatch [:reagent/next-tick])))))
+(defn re-trigger-timer []
+  #?(:cljs (r/next-tick (fn [] (rf/dispatch [:reagent/next-tick])))
+     :clj (throw "Timer not implemented for plain :clj")))
 
 (reg-event-ds
   :reagent/next-tick
   (fn [db _]
-    (let [env (d/entity db [:onyx/name :main-env])
+    (let [sim-id [:onyx/name :main-env] ;; FIXME: magic :main-env
+          env (d/entity db sim-id)
           running (:onyx.sim/running env)
           env (:onyx.sim/env env)]
       (when running
         (re-trigger-timer)
-        [[:db/add [:onyx/name :main-env] :onyx.sim/env (onyx/tick env)]]))))
+        [[:db/add sim-id :onyx.sim/env (onyx/tick env)]]))))
 
 (defn ds->onyx [datascript-map]
   (-> datascript-map
