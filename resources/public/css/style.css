@@ -36,6 +36,10 @@ html {
   color: black;
 }
 
+.onyx-button {
+  margin-right: .5ch;
+}
+
 .onyx-panel {
 /*   margin-top: .5em;
   margin-bottom: .5em;

@@ -42,31 +42,31 @@
        (flui/component basic-outbox sim task-name)])))
 
 (defn pretty-outbox [sim task-name]
-  (let [{env :onyx.sim/env} (utils/deref-or-value sim)
+  (let [{env :onyx.sim/env
+         render :onyx.sim/render} (utils/deref-or-value sim)
         {:keys [outputs]} (get-in env [:tasks task-name])]
     (when outputs
       (flui/v-box
         :class "onyx-outbox"
         :children
-        [(flui/title :label "Outbox" :level :level3)
-         (flui/box
-           :class "segment"
-           :child
-           (pr-str outputs))]))))
+          [(flui/title :label "Outbox" :level :level3)
+           (flui/h-box :children (map (comp (partial flui/box :child) render) outputs))]))))
 
 (defn pretty-inbox [sim task-name]
   (let [{env :onyx.sim/env
          dispatch :onyx.sim/dispatch
+         render :onyx.sim/render
          sim-name :onyx/name
          import-uri :onyx.sim/import-uri} (utils/deref-or-value sim)
         {:keys [inbox]} (get-in env [:tasks task-name])]
     (flui/v-box
       :class "onyx-inbox"
       :children
-      [(flui/title :label "Inbox" :level :level3)
-       (flui/input-text :model import-uri :on-change #(dispatch [:onyx.sim/import-uri [:onyx/name sim-name] task-name %]))
-       (flui/button :label "Import Segments" :on-click #(dispatch [:onyx.sim/import-segments [:onyx/name sim-name] task-name]))
-       [:p.segment (pr-str inbox)]])))
+      (into
+        [(flui/title :label "Inbox" :level :level3)
+         (flui/input-text :model import-uri :on-change #(dispatch [:onyx.sim/import-uri [:onyx/name sim-name] task-name %]))
+         (flui/button :label "Import Segments" :on-click #(dispatch [:onyx.sim/import-segments [:onyx/name sim-name] task-name]))
+         (flui/h-box :children (map (comp (partial flui/box :child) render) inbox))]))))
 
 (defn pretty-task-box [sim task-name]
   (let [{env :onyx.sim/env
@@ -122,11 +122,11 @@
        (flui/h-box
          :class "onyx-controls onyx-panel"
          :children
-         [(flui/button :label "Tick" :on-click #(dispatch [:onyx.api/tick [:onyx/name sim-name]]))
-          (flui/button :label "Step" :on-click #(dispatch [:onyx.api/step [:onyx/name sim-name]]))
-          (flui/button :label "Drain" :on-click #(dispatch [:onyx.api/drain [:onyx/name sim-name]]))
-          (flui/button :label "Start" :on-click #(dispatch [:onyx.api/start [:onyx/name sim-name]]))
-          (flui/button :label "Stop" :on-click #(dispatch [:onyx.api/stop [:onyx/name sim-name]]))])
+         [(flui/button :class "onyx-button" :label "Tick" :on-click #(dispatch [:onyx.api/tick [:onyx/name sim-name]]))
+          (flui/button :class "onyx-button" :label "Step" :on-click #(dispatch [:onyx.api/step [:onyx/name sim-name]]))
+          (flui/button :class "onyx-button" :label "Drain" :on-click #(dispatch [:onyx.api/drain [:onyx/name sim-name]]))
+          (flui/button :class "onyx-button" :label "Start" :on-click #(dispatch [:onyx.api/start [:onyx/name sim-name]]))
+          (flui/button :class "onyx-button" :label "Stop" :on-click #(dispatch [:onyx.api/stop [:onyx/name sim-name]]))])
        (flui/h-box
          :class "onyx-panel"
          :children
