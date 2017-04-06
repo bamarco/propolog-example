@@ -1,5 +1,6 @@
 (ns propolog-example.utils
   (:require [taoensso.timbre :as log]
+            [clojure.pprint :refer [pprint]]
             #?(:clj [clojure.edn :as reader])
             #?(:clj [clojure.java.io :as io]))
   #?(:cljs (:require-macros [propolog-example.utils :refer [xfn stepper]])))
@@ -62,6 +63,14 @@
     (if (predicate in)
       (reduce step acc coll)
       (step acc in))))
+
+(defn educe
+  "For applying a transducer to a single item."
+  [xf item]
+  (first (eduction xf [item])))
+
+(defn ppr-str [& args]
+  (with-out-str (apply pprint args)))
 
 ;;
 ;; cat-into takes a collection to merge into, any number of transducers, and at least one sequence. The sequences are treated as a single sequence back to back.

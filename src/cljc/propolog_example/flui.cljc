@@ -1,20 +1,19 @@
 (ns propolog-example.flui
   (:require [taoensso.timbre :as log]
             #?(:cljs [re-com.core :as rc])
-            [propolog-example.utils :as utils]
-            [clojure.pprint :refer [pprint]]))
+            [propolog-example.utils :refer [mapply ppr-str]]))
 
-(defn component
+(defn call
   "Because you can't use reagent on the serverside. :("
   [f & args]
   #?(:cljs (into [f] args)
      :clj (apply f args)))
 
 (defn provide
-  "map to re-com component and probide stub for hiccup"
+  "map to re-com and probide stub for hiccup"
   [c-name]
   #?(:cljs (fn [& args]
-             (apply component c-name args))
+             (apply call c-name args))
       :clj  (fn [& args]
               [:div.v-box.stub [:p (str "STUB (cljs-only): " (pr-str (cons c-name args)))]])))
 
@@ -26,9 +25,9 @@
     (let [args (-> args
                    (dissoc :code)
                    (assoc :class (str "rc-code " cl )))
-          code (with-out-str (pprint code))]
+          code (ppr-str code)]
       (assert (not child) (str "Code should not have a :child element. Got " child))
-      (utils/mapply rc/box :child [:code [:pre code]] args))))
+      (mapply rc/box :child [:code [:pre code]] args))))
 
 
 (def code (provide #?(:clj 'code

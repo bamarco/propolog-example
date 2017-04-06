@@ -3,7 +3,9 @@
             [re-frame.core :as rf]
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
-            [propolog-example.utils :as utils :refer [cat-into]]
+            [propolog-example.utils :as utils :refer [ppr-str cat-into]]
+            [com.rpl.specter :as specter]
+
             #?(:cljs [cljs.reader :as reader]
                :clj [clojure.edn :as reader])
             #?(:cljs [reagent.core :as r])
@@ -43,16 +45,21 @@
   #?(:cljs (r/next-tick (fn [] (rf/dispatch [:reagent/next-tick])))
      :clj (throw "Timer not implemented for plain :clj")))
 
+(defn pull-and-transition-env [db sim-id & transitions]
+  (let [env (:onyx.sim/env (d/pull db '[{:onyx.sim/env [*]}] sim-id))]
+    (reduce (fn [env tr]
+              (tr env)) env transitions)))
+
 (reg-event-ds
   :reagent/next-tick
   (fn [db _]
     (let [sim-id [:onyx/name :main-env] ;; FIXME: magic :main-env
-          env (d/entity db sim-id)
-          running (:onyx.sim/running env)
-          env (:onyx.sim/env env)]
+          {running :onyx.sim/running speed :onyx.sim/speed}
+           (d/pull db [:onyx.sim/running :onyx.sim/speed] sim-id)]
+      ;; TODO: speed
       (when running
         (re-trigger-timer)
-        [[:db/add sim-id :onyx.sim/env (onyx/tick env)]]))))
+        [(pull-and-transition-env db sim-id onyx/tick)]))))
 
 (defn ds->onyx [datascript-map]
   (-> datascript-map
@@ -68,68 +75,54 @@
   (fn [db [_ sim-id]]
     (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id)
                   :onyx.core/job
-                  ds->onyx)
-          ]
-;;       (log/debug "jobob" job)
-      [[:db/add sim-id :onyx.sim/env (onyx/init job)]]
-       )))
+                  ds->onyx)]
+      [(assoc (onyx/init job) :db/id -1)
+       [:db/add sim-id :onyx.sim/env -1]])))
 
 (reg-event-ds
   :onyx.api/new-segment
   (fn [db [_ sim-id task segment]]
-    (let [env (-> (d/entity db sim-id)
-                  :onyx.sim/env)]
-;;       (log/debug "seg" segment)
-      [[:db/add sim-id :onyx.sim/env (onyx/new-segment env task segment)]]
-    )))
+    (log/debug "dispatching :onyx.api/new-segment")
+;;     (let [env (:onyx.sim/env (d/pull db '[{:onyx.sim/env [*]}] sim-id))]
+;;       (log/debug ":onyx.api/new-segment" segment)
+;;       [;;[:db/add sim-id :onyx.sim/env
+
+;;         (onyx/new-segment env task segment)
+;;         ]
+    ));;)
 
 (reg-event-ds
   :onyx.api/tick
   (fn [db [_ sim-id]]
-    (let [env (-> (d/entity db sim-id)
-                  :onyx.sim/env)]
-      [[:db/add sim-id :onyx.sim/env (onyx/tick env)]]
-    )))
+    [(pull-and-transition-env db sim-id onyx/tick)]))
 
 (reg-event-ds
   :onyx.api/step
   (fn [db [_ sim-id]]
-    (let [env (-> (d/entity db sim-id)
-                  :onyx.sim/env)]
-      [[:db/add sim-id :onyx.sim/env (onyx/step env)]])))
+    [(pull-and-transition-env db sim-id onyx/step)]))
 
 (reg-event-ds
   :onyx.api/drain
   (fn [db [_ sim-id]]
-    (let [env (-> (d/entity db sim-id)
-                  :onyx.sim/env
-                  ds->onyx)]
-      [[:db/add sim-id :onyx.sim/env (onyx/drain env)]])))
+    [(pull-and-transition-env db sim-id onyx/drain)]))
 
 (reg-event-ds
   :onyx.api/start
   (fn [db [_ sim-id]]
-    (let [;;env (-> (d/entity db sim-id)
-          ;;        :onyx.sim/env)
-           ]
       (re-trigger-timer)
-      [[:db/add sim-id :onyx.sim/running true]]
-    )))
+    [[:db/add sim-id :onyx.sim/running true]]))
 
 (reg-event-ds
   :onyx.api/stop
   (fn [db [_ sim-id]]
-    (let [;;env (-> (d/entity db sim-id)
-          ;;        :onyx.sim/env)
-          ]
-      [[:db/add sim-id :onyx.sim/running false]])))
+    [[:db/add sim-id :onyx.sim/running false]]))
 
 (reg-event-ds
   :onyx.sim/hide-task
   (fn [db [_ sim-id task-name]]
-    (let [hidden (-> (d/entity db sim-id)
-                     :onyx.sim/hidden-tasks)]
-    [[:db/add sim-id :onyx.sim/hidden-tasks (conj hidden task-name)]])))
+    (log/debug "hiding" task-name)
+    (let [hidden (get (d/entity db sim-id) :onyx.sim/hidden-tasks)]
+      [[:db/add sim-id :onyx.sim/hidden-tasks (conj hidden task-name)]])))
 
 (reg-event-ds
   :onyx.sim/hide-tasks
@@ -147,14 +140,17 @@
 (reg-event-ds-async
   :onyx.sim/import-segments
   (fn [db [_ sim-id task-name]]
+    (log/debug "dispatching-uri :onyx.sim/import-segments")
     (let [uri (:onyx.sim/import-uri (d/pull db '[:onyx.sim/import-uri] sim-id))]
       uri))
   (fn [db [_ sim-id task-name] [& segments]]
-    (let [env (-> (d/entity db sim-id)
-                  :onyx.sim/env)]
-;;       (log/debug "event-post" (-> (reduce #(onyx/new-segment %1 task-name %2) env segments)
-;;                                  :tasks
-;;                                  task-name
-;;                                  :inbox))
-    [[:db/add sim-id :onyx.sim/env (reduce #(onyx/new-segment %1 task-name %2) env segments)]])))
+    (log/debug "dispatching :onyx.sim/import-segments")
+    [(apply
+       pull-and-transition-env
+       db
+       sim-id
+       (for [seg segments]
+         (fn [env]
+           (onyx/new-segment
+             env task-name seg))))]))
 

@@ -4,10 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [;;[org.clojure/clojure "1.9.0-alpha7"]
-                  [org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 ;;[org.clojure/clojure "1.9.0-alpha7"]
                  [org.clojure/clojurescript "1.9.494"] ;; ???: :scope "provided"]
                  [com.cognitect/transit-clj "0.8.285"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/core.async "0.3.442"]
                  [ring "1.4.0"]
                  [ring/ring-defaults "0.2.0"]
@@ -27,7 +28,17 @@
                  [re-com "0.9.0"]
                  [cljs-http "0.1.42"]
                  [org.clojure/core.match "0.3.0-alpha4"]
-                 [medley "0.8.2"] ;; kills clojure 1.9 warning
+                 [com.rpl/specter "1.0.0"]
+
+                 ;; Vega
+;;                  [metosin/vega-tools "0.2.0"]
+;;                  [cljsjs/vega "2.3.1-0"]
+;;                  [funcool/promesa "1.8.0"]
+;;                  [d4 "0.1.0-SNAPSHOT"]
+;;                  [cljsjs/d3 "4.3.0-4"]
+
+                 ;; kills clojure 1.9 warnings
+                 [medley "0.8.2"]
                  ]
 
   :plugins [[lein-cljsbuild "1.1.3"]

@@ -26,9 +26,11 @@ html, body {
   font-family "Work Sans", Roboto, "Trebuchet MS", Helvetica, sans-serif;
   color: #c0b283;
 }
-html {
-/*  TODO: make background absolute */
-  background: radial-gradient(circle at 10% 10%, #111, #aaa);
+body {
+  background: radial-gradient(circle at 10% 10%, #111, #888);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .onyx-task {

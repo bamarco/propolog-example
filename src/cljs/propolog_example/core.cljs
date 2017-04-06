@@ -6,8 +6,9 @@
             [propolog-example.init :as init]
             ))
 
+(defonce init (init/init))
+
 (defn hook []
-  (init/init)
   (fn []
     [gui/root]))
 

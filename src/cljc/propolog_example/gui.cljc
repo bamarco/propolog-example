@@ -1,6 +1,6 @@
 (ns propolog-example.gui
   (:require [taoensso.timbre :as log]
-            [propolog-example.sub :refer [listen]]
+            [propolog-example.sub :refer [subscribe]]
             [propolog-example.sim :as sim]
             [propolog-example.flui :as flui]
             [propolog-example.utils :as utils]))
@@ -12,4 +12,4 @@
                 ]]
     (flui/v-box
       :children
-      [(flui/component sim/view (listen [:propolog-example.sub/propolog-env sim-id]))])))
+      [(flui/call sim/view (subscribe [:propolog-example.sub/sim-env sim-id]))])))

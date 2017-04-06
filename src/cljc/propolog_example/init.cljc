@@ -191,7 +191,9 @@
         :onyx.sim/import-uri "example.edn"
         :onyx.sim/speed 1.0
         :onyx.sim/running false
-        :onyx.sim/hidden-tasks #{}
+        :onyx.sim/hidden-tasks
+        ;;#{:in :datoms :rule1 :rule2 :rule3 :q2 :q1}
+        #{}
         :onyx.core/job job-id
         }
        ]
@@ -245,10 +247,11 @@
       catalog)))
 
 
-(defonce schema {:onyx.core/catalog {:db/cardinality :db.cardinality/many
-                                     :db/type :db.type/ref}
+(defonce schema {:onyx.core/catalog {:db/type :db.type/ref
+                                     :db/cardinality :db.cardinality/many}
                  :onyx/name {:db/unique :db.unique/identity}
-                 :onyx.core/job {:db/type :db.type/ref}})
+                 :onyx.core/job {:db/type :db.type/ref}
+                 :onyx.sim/env {:db/type :db.type/ref}})
 
 (defn init []
   (let [conn (d/create-conn schema)]
