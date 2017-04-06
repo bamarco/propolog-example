@@ -1,5 +1,6 @@
 (ns user
   (:require [propolog-example.server]
+            [propolog-example.repl]
             [ring.middleware.reload :refer [wrap-reload]]
             [figwheel-sidecar.repl-api :as figwheel]))
 

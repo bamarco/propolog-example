@@ -7,6 +7,7 @@
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
             [propolog-example.catalog :as catalog] ;; need these functions for onyx catalog
+            [propolog-example.svg :as svg]
             ))
 
 ;;  ANCESTOR EXAMPLE
@@ -70,7 +71,7 @@
     (assoc
       (pull conn '[:onyx/name] sim-id)
       :re-frame/dispatch rf/dispatch
-      :onyx.sim/render catalog/render-match
+      :onyx.sim/render svg/render-match
       :datascript/pull #(listen [::pull %1 %2])
       :datascript/q #(listen [::q %1 %&])
       :onyx.sim/listen listen)))

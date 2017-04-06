@@ -17,7 +17,20 @@ https://github.com/onyx-platform/onyx
 https://github.com/mpdairy/posh
 
 
-## Development
+## REPL Developments
+
+Open a terminal and type `lein repl` to start a Clojure REPL
+(interactive prompt).
+
+In the REPL, type
+
+```clojure
+(in-ns 'propolog-example.repl)
+(run)
+```
+
+
+## Browser Development
 
 Open a terminal and type `lein repl` to start a Clojure REPL
 (interactive prompt).

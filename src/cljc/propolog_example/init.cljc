@@ -1,13 +1,12 @@
 (ns propolog-example.init
-  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]]))
   (:require [taoensso.timbre :as log]
             [re-frame.core :as rf]
             [datascript.core :as d]
-            [propolog-example.utils :as utils :refer [cat-into]]
+            [propolog-example.utils :as utils :refer [cat-into ppr-str]]
             #?(:cljs [posh.reagent :as posh])
             #?(:cljs [cljs.core.async :refer [<! chan]])
-            #?(:cljs [cljs-http.client :as http]) ;; TODO: switch to sente
-            ))
+            #?(:cljs [cljs-http.client :as http])) ;; TODO: switch to sente)
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]])))
 
 (defonce temp-id (atom -1))
 
@@ -216,7 +215,7 @@
    :onyx/type :function
    :onyx/name :match
    :onyx/batch-size onyx-batch-size
-   :onyx/fn :propolog-example.catalog/render-match}
+   :onyx/fn :propolog-example.svg/render-match}
     ])
 
 (defn gen-render-edn []
@@ -257,12 +256,6 @@
   (let [conn (d/create-conn schema)]
     #?(:cljs (posh/posh! conn))
     (d/transact! conn (cat-into [] (gen-datascript-edn) (gen-render-edn)))
-;;     #?(:cljs
-;;         (go (let [response (<! (http/get "propolog-example.edn"))]
-;;               ;; FIXME: Transacting directly in an event handler is bad. Change to the other kind of fx handler.
-;;               ;; ???: go block probably also bad.
-;;               (d/transact! conn (:body response))))
-;;         :clj (first (utils/edn-read-file "resources/public/propolog-example.edn")))
     (rf/reg-sub :propolog-example.sub/conn (fn [_ _] conn))
     (re-frame.core/reg-fx
       :propolog-example.event/datascript
@@ -276,24 +269,9 @@
                 event :propolog-example.event/event}]
             (go (let [uri (uri-fn @conn event)
                       response (<! (http/get uri))]
-;;                   (log/info "retrieving edn from" uri)
-;;                   (log/debug "transacting..." (txf @conn (:body response)))
-                  (d/transact! conn [[:db.fn/call txf (:body response)]])
-;;                   (log/debug "post" (-> (d/entity @conn [:onyx/name :main-env])
-;;                                         :onyx.sim/sim
-;;                                         :tasks
-;;                                         :in
-;;                                         :inbox
-;;                                         ))
-                  )))))
+                  (log/info "retrieving edn from <" uri ">")
+                  (log/debug "edn is...\n" (ppr-str (:body response)))
+                  (d/transact! conn [[:db.fn/call txf (:body response)]]))))))
     (rf/dispatch [:onyx.api/init [:onyx/name :main-env]])
     (rf/dispatch [:onyx.api/init [:onyx/name :render-env]])
-    (rf/dispatch [:onyx.sim/import-segments [:onyx/name :main-env] :in])
-;;     (rf/dispatch [:onyx.api/new-segment [:onyx/name :main-env]
-;;                   :in {:transactions #{[42 :shape :triangle]
-;;                                        [42 :sides 3]
-;;                                        [43 :shape :square]
-;;                                        [43 :sides 4]
-;;                                        [44 :shape :rect]
-;;                                        [44 :sides 4]}}])
-    ))
+    (rf/dispatch [:onyx.sim/import-segments [:onyx/name :main-env] :in])))

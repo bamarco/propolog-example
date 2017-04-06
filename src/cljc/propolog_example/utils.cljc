@@ -2,8 +2,12 @@
   (:require [taoensso.timbre :as log]
             [clojure.pprint :refer [pprint]]
             #?(:clj [clojure.edn :as reader])
+;;             #?(:clj [clojure.core.async :refer [<! chan go]]
+;;                :cljs [clojure.core.async :refer [<! chan]])
             #?(:clj [clojure.java.io :as io]))
-  #?(:cljs (:require-macros [propolog-example.utils :refer [xfn stepper]])))
+  #?(:cljs (:require-macros [propolog-example.utils :refer [xfn stepper]]
+;;              [cljs.core.async.macros :refer [go]]
+                            )))
 
 
 #?(:clj
