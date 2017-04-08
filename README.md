@@ -17,7 +17,7 @@ https://github.com/onyx-platform/onyx
 https://github.com/mpdairy/posh
 
 
-## REPL Developments
+## REPL Development
 
 Open a terminal and type `lein repl` to start a Clojure REPL
 (interactive prompt).

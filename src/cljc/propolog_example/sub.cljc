@@ -47,7 +47,7 @@
 ;;     (q '[:find [?job]
 ;;          :in $
 ;;          :where
-;;          [?job :onyx.sim/type :onyx.core/job]] conn)))
+;;          [?job :onyx/type :onyx.core/job]] conn)))
 
 ;; (rf/reg-sub
 ;;   ::jobs
@@ -68,13 +68,15 @@
   ::sim-env
   :<- [::conn]
   (fn [conn [_ sim-id]]
-    (assoc
-      (pull conn '[:onyx/name] sim-id)
+    (log/debug "sim-id" sim-id)
+    {
+      ;; (pull conn '[:onyx/name] sim-id)
+      :db/id sim-id
       :re-frame/dispatch rf/dispatch
+      :re-frame/listen listen
       :onyx.sim/render svg/render-match
-      :datascript/pull #(listen [::pull %1 %2])
-      :datascript/q #(listen [::q %1 %&])
-      :onyx.sim/listen listen)))
+      :datascript/pull #(listen [::pull %1 sim-id])
+      :datascript/q #(listen [::q %1 %&])}))
 
 ;; (rf/reg-sub
 ;;   :onyx.sim/import-uri

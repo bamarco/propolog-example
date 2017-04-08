@@ -30,9 +30,12 @@
       (mapply rc/box :child [:code [:pre code]] args))))
 
 
+(def none [:span])
 (def code (provide #?(:clj 'code
                       :cljs code*)))
 (def button (provide #?(:clj 'button :cljs rc/button)))
+(def gap (provide #?(:clj 'button :cljs rc/gap)))
+(def checkbox (provide #?(:clj 'button :cljs rc/checkbox)))
 (def h-box (provide #?(:clj 'h-box :cljs rc/h-box)))
 (def v-box (provide #?(:clj 'v-box :cljs rc/v-box)))
 (def box (provide #?(:clj 'box :cljs rc/box)))

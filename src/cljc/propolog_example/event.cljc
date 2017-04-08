@@ -3,6 +3,7 @@
             [re-frame.core :as rf]
             [datascript.core :as d]
             [propolog-example.onyx :as onyx]
+            [propolog-example.sim :as sim]
             [propolog-example.utils :as utils :refer [ppr-str cat-into]]
             [com.rpl.specter :as specter]
 
@@ -61,21 +62,12 @@
         (re-trigger-timer)
         [(pull-and-transition-env db sim-id onyx/tick)]))))
 
-(defn ds->onyx [datascript-map]
-  (-> datascript-map
-;;       (dissoc :db/id)
-;;       (dissoc :onyx.sim/type)
-      (clojure.set/rename-keys {:onyx.core/catalog :catalog
-                                :onyx.core/workflow :workflow
-                                :onyx.core/lifecycles :lifecycles
-                                :onyx.core/flow-conditions :flow-conditions})))
-
 (reg-event-ds
   :onyx.api/init
   (fn [db [_ sim-id]]
     (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id)
                   :onyx.core/job
-                  ds->onyx)]
+                  sim/ds->onyx)]
       [(assoc (onyx/init job) :db/id -1)
        [:db/add sim-id :onyx.sim/env -1]])))
 
@@ -136,6 +128,39 @@
           ]
     [[:db/add sim-id :onyx.sym/import-uri uri]]
     )))
+
+(reg-event-ds
+  :onyx.sim.view/options
+  (fn [db [_ sim-id selected]]
+    (let [options (into #{} (map :db/id) (:onyx.sim.view/options (d/pull db '[:onyx.sim.view/options] sim-id)))
+          unselected (clojure.set/difference options selected)]
+      (cat-into
+        []
+        (for [option-id selected]
+          [:db/add option-id :onyx.sim.control/toggled? true])
+        (for [option-id unselected]
+          [:db/add option-id :onyx.sim.control/toggled? false])
+        ))))
+
+(reg-event-ds
+  :onyx.sim.view/description?
+  (fn [db [_ sim-id value]]
+    [[:db/add sim-id :onyx.sim.view/description? value]]))
+
+(reg-event-ds
+  :onyx.sim.view/task-hider?
+  (fn [db [_ sim-id value]]
+    [[:db/add sim-id :onyx.sim.view/task-hider? value]]))
+
+(reg-event-ds
+  :onyx.sim.view/raw-env?
+  (fn [db [_ sim-id value]]
+    [[:db/add sim-id :onyx.sim.view/raw-env? value]]))
+
+(reg-event-ds
+  :onyx.sim.view/only-summary?
+  (fn [db [_ sim-id value]]
+    [[:db/add sim-id :onyx.sim.view/only-summary? value]]))
 
 (reg-event-ds-async
   :onyx.sim/import-segments
