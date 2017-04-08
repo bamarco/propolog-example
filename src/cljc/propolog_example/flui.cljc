@@ -9,13 +9,11 @@
   #?(:cljs (into [f] args)
      :clj (apply f args)))
 
-(defn provide
-  "map to re-com and probide stub for hiccup"
-  [c-name]
-  #?(:cljs (fn [& args]
-             (apply call c-name args))
-      :clj  (fn [& args]
-              [:div.v-box.stub [:p (str "STUB (cljs-only): " (pr-str (cons c-name args)))]])))
+(defn stub
+  "Provides a stub for functions that aren't implemented yet."
+  [fn-name]
+  (fn [& args]
+    [:div.stub [:p (str "STUB for: " (pr-str (cons fn-name args)))]]))
 
 #?
 (:cljs
@@ -31,18 +29,44 @@
 
 
 (def none [:span])
-(def code (provide #?(:clj 'code
-                      :cljs code*)))
-(def button (provide #?(:clj 'button :cljs rc/button)))
-(def gap (provide #?(:clj 'button :cljs rc/gap)))
-(def checkbox (provide #?(:clj 'button :cljs rc/checkbox)))
-(def h-box (provide #?(:clj 'h-box :cljs rc/h-box)))
-(def v-box (provide #?(:clj 'v-box :cljs rc/v-box)))
-(def box (provide #?(:clj 'box :cljs rc/box)))
-(def label (provide #?(:clj 'label :cljs rc/label)))
-(def p (provide #?(:clj 'p :cljs rc/p)))
-(def title (provide #?(:clj 'title :cljs rc/title)))
-(def input-text (provide #?(:clj 'input-text :cljs rc/input-text)))
-(def input-textarea (provide #?(:clj 'input-textarea :cljs rc/input-textarea)))
-(def selection-list (provide #?(:clj 'selection-list :cljs rc/selection-list)))
-(def single-dropdown (provide #?(:clj 'single-dropdown :cljs rc/single-dropdown)))
+(def code #?(:clj (stub 'code)
+             :cljs code*))
+(def button
+  #?(:clj (stub 'button)
+     :cljs (partial call rc/button)))
+(def radio-button
+  #?(:clj (stub 'radio-button)
+     :cljs (partial call rc/radio-button)))
+(def gap
+  #?(:clj (stub 'gap)
+     :cljs (partial call rc/gap)))
+(def checkbox
+  #?(:clj (stub 'checkbox)
+     :cljs (partial call rc/checkbox)))
+(def h-box
+  #?(:clj (stub 'h-box)
+     :cljs (partial call rc/h-box)))
+(def v-box
+  #?(:clj (stub 'v-box)
+     :cljs (partial call rc/v-box)))
+(def box
+  #?(:clj (stub 'box)
+     :cljs (partial call rc/box)))
+(def label
+  #?(:clj (stub 'label)
+     :cljs (partial call rc/label)))
+(def title
+  #?(:clj (stub 'title)
+     :cljs (partial call rc/title)))
+(def input-text
+  #?(:clj (stub 'input-text)
+     :cljs (partial call rc/input-text)))
+(def input-textarea
+  #?(:clj (stub 'input-textarea)
+     :cljs (partial call rc/input-textarea)))
+(def selection-list
+  #?(:clj (stub 'selection-list)
+     :cljs (partial call rc/selection-list)))
+(def single-dropdown
+  #?(:clj (stub 'single-dropdown)
+     :cljs (partial call rc/single-dropdown)))
