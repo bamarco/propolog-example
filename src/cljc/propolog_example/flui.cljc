@@ -18,8 +18,10 @@
 #?
 (:cljs
   (defn code*
-    "Eventually a pretty lookin code block with syntax highlighting. For now very bad."
+    "Eventually a pretty lookin code block with syntax highlighting."
     [& {:as args :keys [code child] cl :class}]
+    ;; TODO: word-wrap and line numbers
+    ;; TODO: syntax highlighting
     (let [args (-> args
                    (dissoc :code)
                    (assoc :class (str "rc-code " cl )))

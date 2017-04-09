@@ -60,7 +60,7 @@ body {
   padding-top: .5em;
   padding-bottom: .5em; */
   padding: .5rem;
-  margin: .25rem;
+/*   margin-left: .25rem; */
 }
 
 .onyx-inbox, .onyx-outbox {

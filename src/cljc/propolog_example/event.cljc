@@ -143,11 +143,6 @@
         ))))
 
 (reg-event-ds
-  :onyx.sim.view/description?
-  (fn [db [_ sim-id value]]
-    [[:db/add sim-id :onyx.sim.view/description? value]]))
-
-(reg-event-ds
   :onyx.sim.control/env-style
   (fn [db [_ sim-id selected]]
     (let [pretty? (= selected :onyx.sim.control/pretty-env?)
@@ -169,19 +164,9 @@
          [:db/add p-id :onyx.sim.control/toggled? pretty?]])))
 
 (reg-event-ds
-  :onyx.sim.view/task-hider?
-  (fn [db [_ sim-id value]]
-    [[:db/add sim-id :onyx.sim.view/task-hider? value]]))
-
-(reg-event-ds
-  :onyx.sim.view/raw-env?
-  (fn [db [_ sim-id value]]
-    [[:db/add sim-id :onyx.sim.view/raw-env? value]]))
-
-(reg-event-ds
-  :onyx.sim.view/only-summary?
-  (fn [db [_ sim-id value]]
-    [[:db/add sim-id :onyx.sim.view/only-summary? value]]))
+  :onyx.sim.control/toggled?
+  (fn [db [_ control-id value]]
+    [[:db/add control-id :onyx.sim.control/toggled? value]]))
 
 (reg-event-ds-async
   :onyx.sim/import-segments

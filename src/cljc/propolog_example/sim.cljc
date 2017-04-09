@@ -7,16 +7,19 @@
 ;;
 ;; UTILS
 ;;
-(defn- option-selected? [sim option?]
+
+(defn- option-control [sim option]
+  ;; ???: should options be system wide or per env
   (let [{:keys [:datascript/pull]} (deref-or-value sim)
         {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])]
 ;;     (log/debug "option-selected?" option?)
     (first
       (sequence
-        (comp
-          (filter #(= option? (:onyx/name %)))
-          (map :onyx.sim.control/toggled?))
-        options))))
+        (filter #(= option (:onyx/name %))
+        options)))))
+
+(defn- option-selected? [sim option]
+  (:onyx.sim.control/toggled? (option-control sim option)))
 
 (def default-view-options
   [{:onyx.sim.view/order 1
@@ -211,64 +214,89 @@
                    [*]}]}])
         task-selection (into {} (map (juxt :onyx/name identity) catalog))
         task-choices (map task-selection sorted-tasks)]
-  (flui/h-box
-         :class "onyx-panel"
-         :children
-         [(flui/label :class "onyx-field-label" :label "Hidden Tasks")
-          (flui/selection-list :choices task-choices
-                               :model hidden-tasks
-                               :id-fn :onyx/name
-                               :max-height "8.5em"
-                               :width "20ch"
-                               :label-fn :onyx/name
-                               :on-change #(dispatch [:onyx.sim/hide-tasks id %]))])))
+    (flui/v-box
+      :class "onyx-panel"
+      :children
+      [(flui/title :level :level4 :label "Hidden Tasks")
+       (flui/selection-list :choices task-choices
+                            :model hidden-tasks
+                            :id-fn :onyx/name
+                            :max-height "8.5em"
+                            :width "20ch"
+                            :label-fn :onyx/name
+                            :on-change #(dispatch [:onyx.sim/hide-tasks id %]))])))
 
-(defn view-filter [sim]
-  (let [{:keys [:re-frame/dispatch :datascript/pull :db/id]} (deref-or-value sim)
-        {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])
-        task-selection (into {} (map (juxt :onyx/name identity) options))
-        choices (sort-by :onyx.sim.view/order options)
-        selections (into #{} (comp
-                               (filter :onyx.sim.control/toggled?)
-                               (map :db/id))
-                         options)
-        disabled (into #{} (comp
-                             (filter :onyx.sim.control/depends)
-                             ;; FIXME: only when depends are not activated do you disable
-                             (map :db/id))
-                       options)]
-    ;; TODO: gray out disabled
-    ;; ???: should depends make a tree
-;;     (log/debug "view-filter" disabled)
-  (flui/h-box
-         :class "onyx-panel"
-         :children
-         [;;(flui/label :class "onyx-field-label" :label "View Options")
-          (flui/selection-list :choices choices
-                               :model selections
-                               :id-fn :db/id
-                               :max-height "8.5em"
-                               :width "25ch"
-                               :label-fn :onyx.sim.control/label
-                               :on-change #(dispatch [:onyx.sim.view/options id %]))])))
+;; (defn view-filter [sim]
+;;   (let [{:keys [:re-frame/dispatch :datascript/pull :db/id]} (deref-or-value sim)
+;;         {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])
+;;         task-selection (into {} (map (juxt :onyx/name identity) options))
+;;         choices (sort-by :onyx.sim.view/order options)
+;;         selections (into #{} (comp
+;;                                (filter :onyx.sim.control/toggled?)
+;;                                (map :db/id))
+;;                          options)
+;;         disabled (into #{} (comp
+;;                              (filter :onyx.sim.control/depends)
+;;                              ;; FIXME: only when depends are not activated do you disable
+;;                              (map :db/id))
+;;                        options)]
+;;     ;; TODO: gray out disabled
+;;     ;; ???: should depends make a tree
+;; ;;     (log/debug "view-filter" disabled)
+;;   (flui/h-box
+;;          :class "onyx-panel"
+;;          :children
+;;          [;;(flui/label :class "onyx-field-label" :label "View Options")
+;;           (flui/selection-list :choices choices
+;;                                :model selections
+;;                                :id-fn :db/id
+;;                                :max-height "8.5em"
+;;                                :width "25ch"
+;;                                :label-fn :onyx.sim.control/label
+;;                                :on-change #(dispatch [:onyx.sim.view/options id %]))])))
 
 (defn env-presentation-controls [sim]
   (let [{:keys [:re-frame/dispatch :db/id]} (deref-or-value sim)
         pretty-env? (option-selected? sim :onyx.sim.control/pretty-env?)
-        selected (if pretty-env? :onyx.sim.control/pretty-env? :onyx.sim.control/raw-env?)]
+        env-style (if pretty-env? :onyx.sim.control/pretty-env? :onyx.sim.control/raw-env?)
+        summary-control (option-control sim :onyx.sim.control/only-summary?)
+        segments-control (option-control sim :onyx.sim.control/render-segments?)
+        action-control (option-control sim :onyx.sim.control/next-action?)
+        description-control (option-control sim :onyx.sim.control/description?)
+        ]
     (flui/v-box
+      :class "onyx-panel"
       :children
       [(flui/title :level :level4 :label "Env Style")
+       (flui/checkbox
+         :model (:onyx.sim.control/toggled? action-control)
+         :on-change #(dispatch [:onyx.sim.control/toggled? (:db/id action-control) %])
+         :label (:onyx.sim.control/label action-control))
+       (flui/checkbox
+         :model (:onyx.sim.control/toggled? description-control)
+         :on-change #(dispatch [:onyx.sim.control/toggled? (:db/id description-control) %])
+         :label (:onyx.sim.control/label description-control))
        (flui/radio-button
-         :model selected
+         :model env-style
          :value :onyx.sim.control/pretty-env?
          :label "Pretty"
          :on-change #(dispatch [:onyx.sim.control/env-style id :onyx.sim.control/pretty-env?]))
+       (flui/checkbox
+         :model (:onyx.sim.control/toggled? segments-control)
+         :on-change #(dispatch [:onyx.sim.control/toggled? (:db/id segments-control) %])
+         :disabled? (not pretty-env?)
+         :label (:onyx.sim.control/label segments-control))
        (flui/radio-button
-         :model selected
+         :model env-style
          :value :onyx.sim.control/raw-env?
          :label "Raw"
-         :on-change #(dispatch [:onyx.sim.control/env-style id :onyx.sim.control/raw-env?]))])))
+         :on-change #(dispatch [:onyx.sim.control/env-style id :onyx.sim.control/raw-env?]))
+       (flui/checkbox
+         :model (:onyx.sim.control/toggled? summary-control)
+         :on-change #(dispatch [:onyx.sim.control/toggled? (:db/id summary-control) %])
+         :disabled? pretty-env?
+         :label (:onyx.sim.control/label summary-control))
+       ])))
 
 (defn view-controls [sim]
     (flui/v-box
@@ -277,8 +305,7 @@
       [(flui/title :level :level3 :label "View Options")
        (flui/h-box
          :children
-         [(flui/call view-filter sim)
-          (flui/call env-presentation-controls sim)
+         [(flui/call env-presentation-controls sim)
           (flui/call task-filter sim)])]))
 
 (defn main-controls [sim]
