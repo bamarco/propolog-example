@@ -1,7 +1,11 @@
-.rc-title {
+.rc-title, .rc-button {
   font-family: "Arvo", "Times New Roman", Times, serif;
   color: #fc4a1a;
 /*   padding-left:1ch; */
+}
+
+.list-group {
+ color:black;
 }
 
 .rc-label {
