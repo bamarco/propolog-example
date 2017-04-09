@@ -2,15 +2,16 @@
   (:require [taoensso.timbre :as log]
             [propolog-example.onyx :as onyx]
             [propolog-example.flui :as flui]
-            #?(:cljs [reagent.core :as r])
-            [propolog-example.utils :refer [deref-or-value ppr-str cat-into educe]]))
+            [propolog-example.utils :refer [deref-or-value ppr-str cat-into educe]]
+            [datascript.core :as d]
+            #?(:cljs [posh.reagent :as posh])
+            #?(:cljs [reagent.core :as r :refer [atom]])))
 ;;
 ;; UTILS
 ;;
-
 (defn- option-control [sim option]
   ;; ???: should options be system wide or per env
-  (let [{:keys [:datascript/pull]} (deref-or-value sim)
+  (let [{:keys [:onyx.sim/pull]} (deref-or-value sim)
         {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])]
 ;;     (log/debug "option-selected?" option?)
     (first
@@ -103,7 +104,7 @@
 ;; VIEWS
 ;;
 (defn pretty-outbox [sim task-name]
-  (let [{:keys [:datascript/pull :onyx.sim/render]} (deref-or-value sim)
+  (let [{:keys [:onyx.sim/pull :onyx.sim/render]} (deref-or-value sim)
         {{tasks :tasks} :onyx.sim/env}
         (pull
           '[{:onyx.sim/env [*]}])
@@ -123,7 +124,7 @@
            (flui/code :code outputs))]))))
 
 (defn pretty-inbox [sim task-name]
-  (let [{:keys [:re-frame/dispatch :datascript/pull :onyx.sim/render :db/id]} (deref-or-value sim)
+  (let [{:keys [:re-frame/dispatch :onyx.sim/pull :onyx.sim/render :db/id]} (deref-or-value sim)
          {import-uri :onyx.sim/import-uri
           {tasks :tasks} :onyx.sim/env}
         (pull '[:onyx.sim/import-uri
@@ -162,7 +163,7 @@
        (flui/call pretty-outbox sim task-name)])))
 
 (defn pretty-env [sim]
-  (let [{:keys [:datascript/pull]} (deref-or-value sim)
+  (let [{:keys [:onyx.sim/pull]} (deref-or-value sim)
          {hidden                :onyx.sim/hidden-tasks
          {sorted-tasks :sorted-tasks} :onyx.sim/env}
         (pull '[:onyx.sim/hidden-tasks
@@ -180,7 +181,7 @@
             (flui/call pretty-task-box sim task-name)))))))
 
 (defn summary [sim]
-  (let [{:keys [:datascript/pull :onyx.sim/summary-fn]
+  (let [{:keys [:onyx.sim/pull :onyx.sim/summary-fn]
          :or {summary-fn onyx/env-summary}} (deref-or-value sim)
         {:keys [:onyx.sim/env]} (pull '[{:onyx.sim/env [*]}])]
   (flui/code :class "onyx-env-summary" :code (summary-fn env))))
@@ -202,7 +203,7 @@
             ]))))
 
 (defn task-filter [sim]
-  (let [{:keys [:re-frame/dispatch :datascript/pull :db/id]} (deref-or-value sim)
+  (let [{:keys [:re-frame/dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
         {hidden-tasks                           :onyx.sim/hidden-tasks
          {catalog          :onyx.core/catalog}  :onyx.core/job
          {sorted-tasks     :sorted-tasks}        :onyx.sim/env}
@@ -227,7 +228,7 @@
                             :on-change #(dispatch [:onyx.sim/hide-tasks id %]))])))
 
 ;; (defn view-filter [sim]
-;;   (let [{:keys [:re-frame/dispatch :datascript/pull :db/id]} (deref-or-value sim)
+;;   (let [{:keys [:re-frame/dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
 ;;         {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])
 ;;         task-selection (into {} (map (juxt :onyx/name identity) options))
 ;;         choices (sort-by :onyx.sim.view/order options)
@@ -335,7 +336,7 @@
          :on-click #(dispatch [:onyx.api/stop id]))])))
 
 (defn next-action [sim]
-  (let [{:keys [:datascript/pull]} (deref-or-value sim)
+  (let [{:keys [:onyx.sim/pull]} (deref-or-value sim)
         {{next-action :next-action} :onyx.sim/env} (pull '[{:onyx.sim/env [:next-action]}])]
     (if-not (option-selected? sim :onyx.sim.control/next-action?)
       flui/none
@@ -346,7 +347,7 @@
          (flui/label :label (pr-str next-action))]))))
 
 (defn view [sim]
-  (let [{:keys [:re-frame/dispatch :datascript/pull]} (deref-or-value sim)
+  (let [{:keys [:re-frame/dispatch :onyx.sim/pull]} (deref-or-value sim)
         {:keys [:onyx.sim/title :onyx.sim/description]} (pull '[:onyx.sim/title :onyx.sim/description])
         description? (option-selected? sim :onyx.sim.control/description?)]
     (flui/v-box
@@ -361,3 +362,34 @@
        (flui/call raw-env sim)
        (flui/call pretty-env sim)
        ])))
+
+(defn sim-selector [{:keys [:datascript.core/conn :re-frame.core/dispatch]}]
+#?(:cljs
+  (let [selected (atom (:db/id (d/entity @conn [:onyx/name :main-env])))]
+    (fn [_]
+      (let [sims (posh/q '[:find ?sim-name ?sim
+                           :where
+                           [?sim :onyx/name ?sim-name]
+                           [?sim :onyx/type :onyx.sim/sim]] conn)
+            sims (for [[nam id] @sims]
+                   {:db/id id
+                    :onyx/name nam})]
+        (log/debug "sims" sims)
+        (flui/v-box
+          :children
+          [(flui/horizontal-tabs
+             :tabs sims
+             :model @selected
+             :id-fn :db/id
+             :label-fn (comp name :onyx/name)
+             :on-change #(reset! selected %))
+           (flui/call view
+                      {:db/id @selected
+                       :re-frame/dispatch dispatch
+                       ;;          :onyx.sim/render svg/render-match
+                       :onyx.sim/pull #(deref (posh/pull conn % @selected))
+                       ;;          :onyx.sim/q #(apply q %1 conn selected %&)
+                       })]))))
+    :clj
+    [:div "Standard HTML not yet supported"]
+    ))

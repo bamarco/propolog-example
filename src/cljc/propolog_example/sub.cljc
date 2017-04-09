@@ -75,7 +75,7 @@
       :re-frame/dispatch rf/dispatch
       :re-frame/listen listen
       :onyx.sim/render svg/render-match
-      :datascript/pull #(listen [::pull %1 sim-id])
+      :onyx.sim/pull #(listen [::pull %1 sim-id])
       :datascript/q #(listen [::q %1 %&])}))
 
 ;; (rf/reg-sub

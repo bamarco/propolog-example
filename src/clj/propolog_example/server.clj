@@ -53,10 +53,16 @@
       [:meta {:charset "UTF-8"}]
       [:meta {:name "viewport"
               :content "width=device-width, initial-scale=1"}]
-      (page/include-css "css/re-com.css")
+      ;; Re-Com
+      (page/include-css "//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap.css")
+      (page/include-css "assets/css/material-design-iconic-font.min.css")
+      (page/include-css "assets/css/re-com.css")
+      (page/include-css "http://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic")
+      (page/include-css "http://fonts.googleapis.com/css?family=Roboto+Condensed:400,300")
+
+      ;; Personal
       (page/include-css "http://fonts.googleapis.com/css?family=Arvo")
       (page/include-css "http://fonts.googleapis.com/css?family=Work+Sans")
-;;       (include-css "css/hljs-rainbow.css")
       (page/include-css "css/style.css")
       ]
      (into

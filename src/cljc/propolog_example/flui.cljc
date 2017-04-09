@@ -43,6 +43,9 @@
 (def gap
   #?(:clj (stub 'gap)
      :cljs (partial call rc/gap)))
+(def horizontal-tabs
+  #?(:clj (stub 'horizontal-tabs)
+     :cljs (partial call rc/horizontal-tabs)))
 (def checkbox
   #?(:clj (stub 'checkbox)
      :cljs (partial call rc/checkbox)))
