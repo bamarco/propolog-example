@@ -9,6 +9,7 @@
             [propolog-example.svg :as svg]))
 
 ;; TODO: I made that pretty error message for onyx runtime. Make sure I submit it.
+;; ???: what is re-frame using for logging? it looks nice.
 
 (defn root []
   (let [env {:re-frame.core/dispatch rf/dispatch

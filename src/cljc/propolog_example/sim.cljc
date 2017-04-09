@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as log]
             [propolog-example.onyx :as onyx]
             [propolog-example.flui :as flui]
+            [propolog-example.svg :as svg]
             [propolog-example.utils :refer [deref-or-value ppr-str cat-into educe]]
             [datascript.core :as d]
             #?(:cljs [posh.reagent :as posh])
@@ -93,7 +94,6 @@
         sim (into sim {:onyx.sim.view/options options
                        :onyx.core/job job
                        :onyx.sim/env (onyx/init (ds->onyx job))})]
-    (log/debug "opts" (count options) (count catalog))
     (cat-into
       [sim
        job]
@@ -140,7 +140,7 @@
             :label "Inbox"
             :level :level3)
           (flui/input-text
-            :model import-uri
+            :model (str import-uri)
             :on-change #(dispatch [:onyx.sim/import-uri id task-name %]))
           (flui/button
             :label "Import Segments"
@@ -158,7 +158,7 @@
       [(flui/h-box
          :children
          [(flui/title :label task-name :level :level2)
-          (flui/button :label "Hide" :on-click #(dispatch [:onyx.sim/hide-task task-name]))])
+          (flui/button :label "Hide" :on-click #(dispatch [:onyx.sim/hide-task id task-name]))])
        (flui/call pretty-inbox sim task-name)
        (flui/call pretty-outbox sim task-name)])))
 
@@ -227,35 +227,6 @@
                             :label-fn :onyx/name
                             :on-change #(dispatch [:onyx.sim/hide-tasks id %]))])))
 
-;; (defn view-filter [sim]
-;;   (let [{:keys [:re-frame/dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
-;;         {:keys [:onyx.sim.view/options]} (pull '[{:onyx.sim.view/options [*]}])
-;;         task-selection (into {} (map (juxt :onyx/name identity) options))
-;;         choices (sort-by :onyx.sim.view/order options)
-;;         selections (into #{} (comp
-;;                                (filter :onyx.sim.control/toggled?)
-;;                                (map :db/id))
-;;                          options)
-;;         disabled (into #{} (comp
-;;                              (filter :onyx.sim.control/depends)
-;;                              ;; FIXME: only when depends are not activated do you disable
-;;                              (map :db/id))
-;;                        options)]
-;;     ;; TODO: gray out disabled
-;;     ;; ???: should depends make a tree
-;; ;;     (log/debug "view-filter" disabled)
-;;   (flui/h-box
-;;          :class "onyx-panel"
-;;          :children
-;;          [;;(flui/label :class "onyx-field-label" :label "View Options")
-;;           (flui/selection-list :choices choices
-;;                                :model selections
-;;                                :id-fn :db/id
-;;                                :max-height "8.5em"
-;;                                :width "25ch"
-;;                                :label-fn :onyx.sim.control/label
-;;                                :on-change #(dispatch [:onyx.sim.view/options id %]))])))
-
 (defn env-presentation-controls [sim]
   (let [{:keys [:re-frame/dispatch :db/id]} (deref-or-value sim)
         pretty-env? (option-selected? sim :onyx.sim.control/pretty-env?)
@@ -310,29 +281,35 @@
           (flui/call task-filter sim)])]))
 
 (defn main-controls [sim]
-  (let [{:keys [:re-frame/dispatch :db/id]} (deref-or-value sim)]
+  (let [{:keys [:re-frame/dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
+        {:keys [:onyx.sim/running]} (pull [:onyx.sim/running])]
     (flui/h-box
       :class "onyx-controls onyx-panel"
       :children
       [(flui/button
          :class "onyx-button"
          :label "Tick"
+         :disabled? running
          :on-click #(dispatch [:onyx.api/tick id]))
        (flui/button
          :class "onyx-button"
          :label "Step"
+         :disabled? running
          :on-click #(dispatch [:onyx.api/step id]))
        (flui/button
          :class "onyx-button"
          :label "Drain"
+         :disabled? running
          :on-click #(dispatch [:onyx.api/drain id]))
        (flui/button
          :class "onyx-button"
          :label "Start"
+         :disabled? running
          :on-click #(dispatch [:onyx.api/start id]))
        (flui/button
          :class "onyx-button"
          :label "Stop"
+         :disabled? (not running)
          :on-click #(dispatch [:onyx.api/stop id]))])))
 
 (defn next-action [sim]
@@ -374,7 +351,6 @@
             sims (for [[nam id] @sims]
                    {:db/id id
                     :onyx/name nam})]
-        (log/debug "sims" sims)
         (flui/v-box
           :children
           [(flui/horizontal-tabs
@@ -386,10 +362,9 @@
            (flui/call view
                       {:db/id @selected
                        :re-frame/dispatch dispatch
-                       ;;          :onyx.sim/render svg/render-match
+                       :onyx.sim/render svg/render-match
                        :onyx.sim/pull #(deref (posh/pull conn % @selected))
                        ;;          :onyx.sim/q #(apply q %1 conn selected %&)
                        })]))))
     :clj
-    [:div "Standard HTML not yet supported"]
-    ))
+    [:div "Standard HTML not yet supported"]))

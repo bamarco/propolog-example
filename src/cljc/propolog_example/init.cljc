@@ -172,7 +172,6 @@
 (defn init []
   (let [conn (d/create-conn sim/schema)]
     #?(:cljs (posh/posh! conn))
-    (log/debug "render-tx" (map :onyx/name (sim/db-create-sim nil main-sim)))
     ;; ???: temp-id's in two db.fn/call conflict each other. Is this a bug or a feature? We either need a warning or the bug fixed in datascript.
     (d/transact! conn [[:db.fn/call sim/db-create-sim main-sim]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim render-sim]])
@@ -189,7 +188,7 @@
                 event :propolog-example.event/event}]
             (go (let [uri (uri-fn @conn event)
                       response (<! (http/get uri))]
-                  (log/info "retrieving edn from <" uri ">")
+                  (log/info (str "retrieving edn from <" uri ">"))
                   (log/debug "edn is...\n" (ppr-str (:body response)))
                   (d/transact! conn [[:db.fn/call txf (:body response)]]))))))
     (rf/dispatch [:onyx.sim/import-segments [:onyx/name :main-env] :in])))

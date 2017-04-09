@@ -54,7 +54,7 @@
 (reg-event-ds
   :reagent/next-tick
   (fn [db _]
-    (let [sim-id [:onyx/name :main-env] ;; FIXME: magic :main-env
+    (let [sim-id [:onyx/name :main-env] ;; FIXME: magic :main-env. ???: use q.
           {running :onyx.sim/running speed :onyx.sim/speed}
            (pull db [:onyx.sim/running :onyx.sim/speed] sim-id)]
       ;; TODO: speed

@@ -81,7 +81,10 @@ body {
   justify-content: center; */
 }
 
-.rc-code, code, pre {
+/* .rc-code, code,  */
+pre {
+/*   border: 0; */
+  white-space: pre-wrap;
   background:     white;
 /*     margin-right:   0.2em;
     border-radius:  4px;
@@ -89,7 +92,25 @@ body {
     background:     #eee;
     border:         1px solid #ddd;
     padding:        0.1em 0.3em; */
+/*   counter-reset: line; */
+/*   line-height: 0; */
+  display: block;
 }
+
+/* FIXME: line numbers */
+/* pre span {
+  display:block;
+  line-height: 1.5rem;
+}
+pre span:before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  border-right: 1px solid #ddd;
+  padding: 0 .5em;
+  margin-right: .5em;
+  color: #888;
+} */
 
 .segment {
 /*   color: green; */
