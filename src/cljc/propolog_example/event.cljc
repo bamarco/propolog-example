@@ -1,7 +1,7 @@
 (ns propolog-example.event
   (:require [taoensso.timbre :as log]
             [re-frame.core :as rf]
-            [datascript.core :as d]
+            [datascript.core :as d :refer [pull q]]
             [propolog-example.onyx :as onyx]
             [propolog-example.sim :as sim]
             [propolog-example.utils :as utils :refer [ppr-str cat-into]]
@@ -47,7 +47,7 @@
      :clj (throw "Timer not implemented for plain :clj")))
 
 (defn pull-and-transition-env [db sim-id & transitions]
-  (let [env (:onyx.sim/env (d/pull db '[{:onyx.sim/env [*]}] sim-id))]
+  (let [env (:onyx.sim/env (pull db '[{:onyx.sim/env [*]}] sim-id))]
     (reduce (fn [env tr]
               (tr env)) env transitions)))
 
@@ -56,7 +56,7 @@
   (fn [db _]
     (let [sim-id [:onyx/name :main-env] ;; FIXME: magic :main-env
           {running :onyx.sim/running speed :onyx.sim/speed}
-           (d/pull db [:onyx.sim/running :onyx.sim/speed] sim-id)]
+           (pull db [:onyx.sim/running :onyx.sim/speed] sim-id)]
       ;; TODO: speed
       (when running
         (re-trigger-timer)
@@ -65,7 +65,7 @@
 (reg-event-ds
   :onyx.api/init
   (fn [db [_ sim-id]]
-    (let [job (-> (d/pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id)
+    (let [job (-> (pull db '[{:onyx.core/job [{:onyx.core/catalog [*]} *]}] sim-id)
                   :onyx.core/job
                   sim/ds->onyx)]
       [(assoc (onyx/init job) :db/id -1)
@@ -75,7 +75,7 @@
   :onyx.api/new-segment
   (fn [db [_ sim-id task segment]]
     (log/debug "dispatching :onyx.api/new-segment")
-;;     (let [env (:onyx.sim/env (d/pull db '[{:onyx.sim/env [*]}] sim-id))]
+;;     (let [env (:onyx.sim/env (pull db '[{:onyx.sim/env [*]}] sim-id))]
 ;;       (log/debug ":onyx.api/new-segment" segment)
 ;;       [;;[:db/add sim-id :onyx.sim/env
 
@@ -132,7 +132,7 @@
 (reg-event-ds
   :onyx.sim.view/options
   (fn [db [_ sim-id selected]]
-    (let [options (into #{} (map :db/id) (:onyx.sim.view/options (d/pull db '[:onyx.sim.view/options] sim-id)))
+    (let [options (into #{} (map :db/id) (:onyx.sim.view/options (pull db '[:onyx.sim.view/options] sim-id)))
           unselected (clojure.set/difference options selected)]
       (cat-into
         []
@@ -146,6 +146,27 @@
   :onyx.sim.view/description?
   (fn [db [_ sim-id value]]
     [[:db/add sim-id :onyx.sim.view/description? value]]))
+
+(reg-event-ds
+  :onyx.sim.control/env-style
+  (fn [db [_ sim-id selected]]
+    (let [pretty? (= selected :onyx.sim.control/pretty-env?)
+          raw? (= selected :onyx.sim.control/raw-env?)
+          [r-id p-id] (q '[:find [?r-id ?p-id]
+                                  :in $ ?e
+                                  :where
+                                  [?e :onyx.sim.view/options ?r-id]
+                                  [?e :onyx.sim.view/options ?p-id]
+                                  [?r-id :onyx/name :onyx.sim.control/raw-env?]
+;;                                   [?r-id :onyx.sim.control/toggled? ?raw]
+                                  [?p-id :onyx/name :onyx.sim.control/pretty-env?]
+;;                                   [?p-id :onyx.sim.control/toggled? ?pretty]
+                                  ] db sim-id)]
+      ;; REPORT-BUG: There is a bug where radio buttons pass the value false instead of the selected value. We've hacked our way around it in the dispatch function, but this does not agree with the re-com documentation.
+      (log/debug selected "pretty? " pretty? " raw? " raw?)
+      ;; TODO: make a generic radio control handler and data type
+        [[:db/add r-id :onyx.sim.control/toggled? raw?]
+         [:db/add p-id :onyx.sim.control/toggled? pretty?]])))
 
 (reg-event-ds
   :onyx.sim.view/task-hider?
@@ -166,7 +187,7 @@
   :onyx.sim/import-segments
   (fn [db [_ sim-id task-name]]
     (log/debug "dispatching-uri :onyx.sim/import-segments")
-    (let [uri (:onyx.sim/import-uri (d/pull db '[:onyx.sim/import-uri] sim-id))]
+    (let [uri (:onyx.sim/import-uri (pull db '[:onyx.sim/import-uri] sim-id))]
       uri))
   (fn [db [_ sim-id task-name] [& segments]]
     (log/debug "dispatching :onyx.sim/import-segments")

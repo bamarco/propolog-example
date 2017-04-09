@@ -29,8 +29,9 @@
 
 
 (def none [:span])
-(def code #?(:clj (stub 'code)
-             :cljs code*))
+(def code
+  #?(:clj (stub 'code)
+     :cljs code*))
 (def button
   #?(:clj (stub 'button)
      :cljs (partial call rc/button)))

@@ -252,8 +252,25 @@
                                :label-fn :onyx.sim.control/label
                                :on-change #(dispatch [:onyx.sim.view/options id %]))])))
 
+(defn env-presentation-controls [sim]
+  (let [{:keys [:re-frame/dispatch :db/id]} (deref-or-value sim)
+        pretty-env? (option-selected? sim :onyx.sim.control/pretty-env?)
+        selected (if pretty-env? :onyx.sim.control/pretty-env? :onyx.sim.control/raw-env?)]
+    (flui/v-box
+      :children
+      [(flui/title :level :level4 :label "Env Style")
+       (flui/radio-button
+         :model selected
+         :value :onyx.sim.control/pretty-env?
+         :label "Pretty"
+         :on-change #(dispatch [:onyx.sim.control/env-style id :onyx.sim.control/pretty-env?]))
+       (flui/radio-button
+         :model selected
+         :value :onyx.sim.control/raw-env?
+         :label "Raw"
+         :on-change #(dispatch [:onyx.sim.control/env-style id :onyx.sim.control/raw-env?]))])))
+
 (defn view-controls [sim]
-  (let [{:keys [:re-frame/dispatch :datascript/pull :db/id]} (deref-or-value sim)]
     (flui/v-box
       :class "onyx-controls onyx-panel"
       :children
@@ -261,7 +278,8 @@
        (flui/h-box
          :children
          [(flui/call view-filter sim)
-          (flui/call task-filter sim)])])))
+          (flui/call env-presentation-controls sim)
+          (flui/call task-filter sim)])]))
 
 (defn main-controls [sim]
   (let [{:keys [:re-frame/dispatch :db/id]} (deref-or-value sim)]
