@@ -80,17 +80,16 @@
   (resources "/"))
 
 (def http-handler
-  (do (init/init)
-    (-> routes
-        (friend/authenticate {:workflows [(interactive-form)]
-                              :credential-fn (partial bcrypt-credential-fn username->user)})
-        (wrap-keyword-params)
-        (wrap-params)
-        (wrap-session)
-        ;; FIXME: (anti-forgery/wrap-anti-forgery)
-        (wrap-defaults api-defaults)
-        logger.timbre/wrap-with-logger
-        wrap-gzip)))
+  (-> routes
+      (friend/authenticate {:workflows [(interactive-form)]
+                            :credential-fn (partial bcrypt-credential-fn username->user)})
+      (wrap-keyword-params)
+      (wrap-params)
+      (wrap-session)
+      ;; FIXME: (anti-forgery/wrap-anti-forgery)
+      (wrap-defaults api-defaults)
+      logger.timbre/wrap-with-logger
+      wrap-gzip))
 
 (defn -main [& [port]]
   (let [port (Integer. (or port (env :port) 10555))]
