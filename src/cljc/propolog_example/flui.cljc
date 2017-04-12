@@ -46,6 +46,12 @@
 (def horizontal-tabs
   #?(:clj (stub 'horizontal-tabs)
      :cljs (partial call rc/horizontal-tabs)))
+(def horizontal-pill-tabs
+  #?(:clj (stub 'horizontal-tabs)
+     :cljs (partial call rc/horizontal-pill-tabs)))
+(def horizontal-bar-tabs
+  #?(:clj (stub 'horizontal-tabs)
+     :cljs (partial call rc/horizontal-bar-tabs)))
 (def checkbox
   #?(:clj (stub 'checkbox)
      :cljs (partial call rc/checkbox)))

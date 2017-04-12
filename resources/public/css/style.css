@@ -1,15 +1,63 @@
-.rc-title, .rc-button {
+/* onyx/green: #43d16b */
+/* onyx/gray: #354d56 */
+/* onyx.sim/blue: #6a8aac */
+/* onyx.sim/pale-blue: #9ee3ff */
+/* onyx.sim/gold: #c0b283*/
+
+
+html, body {
+  font-family "Work Sans", Roboto, "Trebuchet MS", Helvetica, sans-serif;
+/*   color: #c0b283; */
+}
+body {
+  background: radial-gradient(circle at 15% 15%, #111, #888);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+/*   background-color: black; */
+}
+
+code {
+  background-color: white;
+}
+pre {
+  white-space: pre-wrap;
+  background-color: white;
+  border: 0;
+  display: block;
+}
+
+.onyx-logo-img {
+/*   padding-top: .25em; */
+/*   padding-bottom: .25em; */
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.onyx-logo {
+/*   vertical-align: bottom; */
+  background: white;
+  border-radius: 5px;
+  font-size: 2rem;
+  padding: .25rem;
+  color: #c0b283;
+}
+
+.btn-default {
+  font-family: "Arvo", "Times New Roman", Times, serif;
+}
+.rc-title,  .nav a, .field-label {
   font-family: "Arvo", "Times New Roman", Times, serif;
   color: #fc4a1a;
-/*   padding-left:1ch; */
+  letter-spacing: normal;
 }
 
 .list-group {
  color:black;
 }
 
-.rc-label {
-  margin-right: 1ch;
+.onyx-panel, .btn-group, .onyx-logo {
+  margin: .2rem;
 }
 
 .level1 {
@@ -25,93 +73,43 @@
 .level4 {
   font-size: 1rem;
 }
-
-html, body {
-  font-family "Work Sans", Roboto, "Trebuchet MS", Helvetica, sans-serif;
-  color: #c0b283;
+.field-label {
+  font-size: 1rem;
+  letter-spacing: normal;
 }
-body {
-  background: radial-gradient(circle at 10% 10%, #111, #888);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+
+.rc-title, .field-label, .btn, .btn-default, button, .rc-button, .form-control {
+  margin: .25rem;
+/*   margin-right: .25ch; */
+}
+
+/* .field-label, .btn-default {
+  margin-top: .25ch;
+  margin-bottom: .25ch;
+} */
+
+.onyx-sim {
+  background: white;
+  max-width: 100%;
+  width: 120ch;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 5px;
+}
+
+.onyx-nav {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .onyx-task {
-  background-color: PaleTurquoise;
-  color: black;
-}
-
-.onyx-button, .rc-title {
-  margin-right: .5ch;
-/*   margin-top: auto;
-  margin-bottom: auto; */
-}
-
-.onyx-field-label {
-/*   font-family: "Arvo", "Times New Roman", Times, serif; */
-  color: #fc4a1a;
-  font-variant:   small-caps;
-}
-
-.onyx-panel {
-/*   margin-top: .5em;
-  margin-bottom: .5em;
-  margin-left: 1ch;
-  margin-right: 1ch; */
-/*   padding-left: 1ch;
-  padding-right: 1ch;
-  padding-top: .5em;
-  padding-bottom: .5em; */
-  padding: .5rem;
-/*   margin-left: .25rem; */
+  background-color: #9ee3ff;
+  border-radius: 5px;
+/*   padding: .5rem; */
 }
 
 .onyx-inbox, .onyx-outbox {
-  background-color: LightCyan;
-  padding-left: 1ch;
-  padding-right: 1ch;
-  padding-top: .5em;
-  padding-bottom: .5em;
-}
-
-.onyx-pc {
-/*   ???: how to get horizontal elements centered or aligned bottom sp you can put fields next to labels
-  align-items: center;
-  justify-content: center; */
-}
-
-/* .rc-code, code,  */
-pre {
-/*   border: 0; */
-  white-space: pre-wrap;
-  background:     white;
-/*     margin-right:   0.2em;
-    border-radius:  4px;
-    color:          #333;
-    background:     #eee;
-    border:         1px solid #ddd;
-    padding:        0.1em 0.3em; */
-/*   counter-reset: line; */
-/*   line-height: 0; */
-  display: block;
-}
-
-/* FIXME: line numbers */
-/* pre span {
-  display:block;
-  line-height: 1.5rem;
-}
-pre span:before {
-  counter-increment: line;
-  content: counter(line);
-  display: inline-block;
-  border-right: 1px solid #ddd;
-  padding: 0 .5em;
-  margin-right: .5em;
-  color: #888;
-} */
-
-.segment {
-/*   color: green; */
+  background-color: white;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
 }

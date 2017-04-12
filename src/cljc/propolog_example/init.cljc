@@ -93,12 +93,12 @@
                [:q2 :render]]
     :onyx.core/lifecycles []
     :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
-                                         :datoms [:rule1 :rule2]
-                                         :rule1 [:rule3]
-                                         :rule2 [:q2]
-                                         :rule3 [:q1]
-                                         :q1 [:render]
-                                         :q2 [:render]})}})
+                                                   :datoms [:rule1 :rule2]
+                                                   :rule1 [:rule3]
+                                                   :rule2 [:q2]
+                                                   :rule3 [:q1]
+                                                   :q1 [:render]
+                                                   :q2 [:render]})}})
 
 (def render-sim
   {:onyx/name :render-env
@@ -110,7 +110,7 @@
     :onyx.core/workflow [[:in :match] [:match :render]]
     :onyx.core/lifecycles []
     :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
-                                         :match [:render]})}})
+                                                   :match [:render]})}})
 
 (defn create-conn []
   (let [conn (d/create-conn sim/schema)]
