@@ -106,11 +106,22 @@
   [db {:keys [:onyx.sim/sim]}]
   (pull-and-transition-env db sim onyx/drain))
 
+#?(:cljs
+(defn run-sim [conn sim]
+  (let [running? (:onyx.sim/running? (d/entity @conn sim))]
+    (when running?
+      ;; FIXME: upgrade performance by doing everything inline
+      (dispatch! conn {:onyx/type :reagent/next-tick})
+      (r/next-tick #(run-sim conn sim))))))
+
 (defmethod intent
   :onyx.api/start
-  [db {:keys [:onyx.sim/sim]}]
-;;   (re-trigger-timer)
-  [[:db/add sim :onyx.sim/running? true]])
+  [conn {:keys [:onyx.sim/sim]}]
+  #?(:cljs
+      (do
+        (d/transact! conn [[:db/add sim :onyx.sim/running? true]])
+        (run-sim conn sim))
+      :clj (throw "Cannot start simulator in clojure. Only implemented in cljs.")))
 
 (defmethod intent
   :onyx.api/stop

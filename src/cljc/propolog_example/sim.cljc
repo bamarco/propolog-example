@@ -310,7 +310,7 @@
           (flui/call task-filter sim)])]))
 
 (defn main-controls [sim]
-  (let [{:keys [:onyx.sim/dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
+  (let [{:keys [:onyx.sim/dispatch :onyx.sim/raw-dispatch :onyx.sim/pull :db/id]} (deref-or-value sim)
         {:keys [:onyx.sim/running?]} (pull [:onyx.sim/running?])]
     (flui/h-box
       :class "onyx-controls onyx-panel"
@@ -337,7 +337,7 @@
          :class "onyx-button"
          :label "Start"
          :disabled? running?
-         :on-click #(dispatch {:onyx/type :onyx.api/start
+         :on-click #(raw-dispatch {:onyx/type :onyx.api/start
                                :onyx.sim/sim id}))
        (flui/button
          :class "onyx-button"
@@ -374,27 +374,9 @@
        (flui/call pretty-env sim)
        ])))
 
-;; (defn tick-sims* [db]
-;;   (let [sims (d/q '[:find (d/pull [:onyx.sim/running? :onyx.sim/speed] ?sim)
-;;                     :where
-;;                     [?sim :onyx/type :onyx.sim/sim]] db)]
-;;     [:onyx/name :main-env] ;; FIXME: magic :main-env. ???: use q.
-;;     (for [{:keys [:db/id :onyx.sim/running? :onyx.sim/speed]} sims]
-;;       (when running?
-;;         ;; TODO: speed
-;;         (pull-and-transition-env db id onyx/tick)))))
-
-#?(:cljs
-(defn tick-sims [conn]
-  ;; FIXME: upgrade performance by doing everything from intent inline
-  (event/dispatch! conn {:onyx/type :reagent/next-tick});;tick-sims*]])
-  ;; TODO: create and check for STOP signal
-  (r/next-tick #(tick-sims conn))))
-
 (defn sim-selector [conn]
 #?(:cljs
   (let [selected (atom (:db/id (d/entity @conn [:onyx/name :main-env])))]
-    (tick-sims conn)
     (fn [conn]
       (let [sims (posh/q '[:find ?sim-name ?sim
                            :where
