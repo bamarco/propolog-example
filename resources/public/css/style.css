@@ -3,6 +3,8 @@
 /* onyx.sim/blue: #6a8aac */
 /* onyx.sim/pale-blue: #9ee3ff */
 /* onyx.sim/gold: #c0b283*/
+/* onyx.sim/dark-tan #A07F60 */
+/* onyx.sim/light-tan #D7CEC7 */
 
 
 html, body {
@@ -10,7 +12,8 @@ html, body {
 /*   color: #c0b283; */
 }
 body {
-  background: radial-gradient(circle at 15% 15%, #111, #888);
+  background: radial-gradient(circle at 15% 15%, #A07F60, #D7CEC7);
+/* background: radial-gradient(circle at 15% 15%, #111, #888); */
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -19,6 +22,7 @@ body {
 
 code {
   background-color: white;
+  border: 0;
 }
 pre {
   white-space: pre-wrap;
@@ -28,14 +32,11 @@ pre {
 }
 
 .onyx-logo-img {
-/*   padding-top: .25em; */
-/*   padding-bottom: .25em; */
   width: 1.25em;
   height: 1.25em;
 }
 
 .onyx-logo {
-/*   vertical-align: bottom; */
   background: white;
   border-radius: 5px;
   font-size: 2rem;
@@ -50,14 +51,6 @@ pre {
   font-family: "Arvo", "Times New Roman", Times, serif;
   color: #fc4a1a;
   letter-spacing: normal;
-}
-
-.list-group {
- color:black;
-}
-
-.onyx-panel, .btn-group, .onyx-logo {
-  margin: .2rem;
 }
 
 .level1 {
@@ -78,16 +71,6 @@ pre {
   letter-spacing: normal;
 }
 
-.rc-title, .field-label, .btn, .btn-default, button, .rc-button, .form-control {
-  margin: .25rem;
-/*   margin-right: .25ch; */
-}
-
-/* .field-label, .btn-default {
-  margin-top: .25ch;
-  margin-bottom: .25ch;
-} */
-
 .onyx-sim {
   background: white;
   max-width: 100%;
@@ -95,6 +78,8 @@ pre {
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
+  padding-left: .5ch;
+  padding-right: .5ch;
 }
 
 .onyx-nav {
@@ -102,14 +87,6 @@ pre {
   margin-right: auto;
 }
 
-.onyx-task {
-  background-color: #9ee3ff;
-  border-radius: 5px;
-/*   padding: .5rem; */
-}
-
 .onyx-inbox, .onyx-outbox {
   background-color: white;
-  padding-top: .5rem;
-  padding-bottom: .5rem;
 }

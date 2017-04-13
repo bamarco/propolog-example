@@ -46,28 +46,18 @@
 
 (defmethod intent
   :onyx.sim.control/env-style
-  [db {:keys [:onyx.sim/sim :onyx.sim.control/selected]}]
+  [db {:keys [:onyx.sim.control/selected]}]
   (let [pretty? (= selected :onyx.sim.control/pretty-env?)
-        raw? (= selected :onyx.sim.control/raw-env?)
-        [r-id p-id] (q '[:find [?r-id ?p-id]
-                         :in $ ?e
-                         :where
-                         [?e :onyx.sim.view/options ?r-id]
-                         [?e :onyx.sim.view/options ?p-id]
-                         [?r-id :onyx/name :onyx.sim.control/raw-env?]
-                         ;; [?r-id :onyx.sim.control/toggled? ?raw]
-                         [?p-id :onyx/name :onyx.sim.control/pretty-env?]
-                         ;; [?p-id :onyx.sim.control/toggled? ?pretty]
-                         ] db sim)]
+        raw? (= selected :onyx.sim.control/raw-env?)]
     ;; ???: REPORT-BUG: There is a bug where radio buttons pass the value false instead of the selected value. We've hacked our way around it in this function, but this does not agree with the re-com documentation.
     ;; TODO: make a generic radio control handler and data type
 ;;     (log/debug selected "pretty? " pretty? " raw? " raw?)
-    [[:db/add r-id :onyx.sim.control/toggled? raw?]
-     [:db/add p-id :onyx.sim.control/toggled? pretty?]]))
+    [[:db/add [:onyx/name :onyx.sim.control/raw-env?] :onyx.sim.control/toggled? raw?]
+     [:db/add [:onyx/name :onyx.sim.control/pretty-env?] :onyx.sim.control/toggled? pretty?]]))
 
 (defmethod intent
   :onyx.sim.control/toggled?
-  [db {:keys [:onyx.sim/sim :onyx.sim/control :onyx.sim.control/toggled?]}]
+  [db {:keys [:onyx.sim/control :onyx.sim.control/toggled?]}]
   [[:db/add control :onyx.sim.control/toggled? toggled?]])
 
 (defmethod intent

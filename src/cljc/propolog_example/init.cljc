@@ -116,6 +116,7 @@
   (let [conn (d/create-conn sim/schema)]
     #?(:cljs (posh/posh! conn))
     ;; ???: temp-id's in two db.fn/call conflict each other. Is this a bug or a feature? We either need a warning or the bug fixed in datascript.
+;;     (d/transact! conn [[:db.fn/call sim/db-create-ui]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim main-sim]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim render-sim]])
     #?(:cljs
