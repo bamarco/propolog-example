@@ -4,7 +4,7 @@
             [propolog-example.flui :as flui]
             [propolog-example.event :as event :refer [dispatch raw-dispatch]]
             [propolog-example.svg :as svg]
-            [propolog-example.utils :refer [deref-or-value ppr-str cat-into educe]]
+            [propolog-example.utils :refer [cat-into]]
             [datascript.core :as d]
             #?(:cljs [posh.reagent :as posh])
             #?(:cljs [reagent.core :as r :refer [atom]])))
@@ -128,11 +128,11 @@
 ;;
 ;; VIEWS
 ;;
-(defn pretty-outbox [sim task-name]
-  (let [{:keys [sim-id conn :onyx.sim/render]} (deref-or-value sim)
-        {{tasks :tasks} :onyx.sim/env}
+(defn pretty-outbox [{:as sim :keys [sim-id conn]} task-name]
+  (let [{:keys [:onyx.sim/render]
+         {tasks :tasks} :onyx.sim/env}
         (pull conn
-          '[{:onyx.sim/env [*]}] sim-id)
+              '[:onyx.sim/render {:onyx.sim/env [*]}] sim-id)
         outputs (get-in tasks [task-name :outputs])
         render-segments? (option-selected? sim :onyx.sim.control/render-segments?)]
     ;; TODO: dump segments button
@@ -145,15 +145,14 @@
            :label "Outbox"
            :level :level3)
          (if (and render-segments? render)
-;;            (transduce render container outputs)
+           ;;            (transduce render container outputs)
            (render (reduce render (render) outputs))
            (flui/code :code outputs))]))))
 
-(defn pretty-inbox [sim task-name]
-  (let [{:keys [sim-id   conn :onyx.sim/render :db/id]} (deref-or-value sim)
-         {import-uri :onyx.sim/import-uri
+(defn pretty-inbox [{:as sim :keys [sim-id conn]} task-name]
+  (let [{:keys [:onyx.sim/import-uri :onyx.sim/render]
           {tasks :tasks} :onyx.sim/env}
-        (pull conn '[:onyx.sim/import-uri
+        (pull conn '[:onyx.sim/import-uri :onyx.sim/render
                 {:onyx.sim/env [*]}] sim-id)
         inbox (get-in tasks [task-name :inbox])
         render-segments? (option-selected? sim :onyx.sim.control/render-segments?)]
@@ -186,9 +185,8 @@
          (render (reduce render (render) inbox))
          (flui/code :code inbox))])))
 
-(defn pretty-task-box [sim task-name]
-  (let [{:keys [sim-id  conn]} (deref-or-value sim)
-        {{tasks :tasks} :onyx.sim/env}
+(defn pretty-task-box [{:as sim :keys [sim-id conn]} task-name]
+  (let [{{tasks :tasks} :onyx.sim/env}
         (pull conn '[{:onyx.sim/env [*]}] sim-id)
         task-type (get-in tasks [task-name :event :onyx.core/task-map :onyx/type])]
     (flui/v-box
@@ -215,13 +213,12 @@
        [pretty-inbox sim task-name]
        [pretty-outbox sim task-name]])))
 
-(defn pretty-env [sim]
-  (let [{:keys [sim-id conn]} (deref-or-value sim)
-         {hidden                :onyx.sim/hidden-tasks
+(defn pretty-env [{:as sim :keys [sim-id conn]}]
+  (let [{hidden                :onyx.sim/hidden-tasks
          {sorted-tasks :sorted-tasks} :onyx.sim/env}
         (pull conn '[:onyx.sim/hidden-tasks
-                {:onyx.sim/env
-                 [:sorted-tasks]}] sim-id)]
+                     {:onyx.sim/env
+                      [:sorted-tasks]}] sim-id)]
     (if-not (option-selected? sim :onyx.sim.control/pretty-env?)
       flui/none
       (flui/v-box
@@ -233,11 +230,12 @@
             ^{:key (:onyx/name task-name)}
             [pretty-task-box sim task-name]))))))
 
-(defn summary [sim]
-  (let [{:keys [sim-id conn :onyx.sim/summary-fn]
-         :or {summary-fn onyx/env-summary}} (deref-or-value sim)
-        {:keys [:onyx.sim/env]} (pull conn '[{:onyx.sim/env [*]}] sim-id)]
-  (flui/code :class "onyx-panel" :code (summary-fn env))))
+(defn summary
+  ([sim] (summary sim nil))
+  ([{:as sim :keys [sim-id conn]} summary-fn]
+   (let [summary-fn (or summary-fn onyx/env-summary)
+         {:keys [:onyx.sim/env]} (pull conn '[{:onyx.sim/env [*]}] sim-id)]
+     (flui/code :class "onyx-panel" :code (summary-fn env)))))
 
 (defn raw-env [sim]
   (let [raw-env? (option-selected? sim :onyx.sim.control/raw-env?)
@@ -248,19 +246,13 @@
            :class "onyx-env"
            :children
            [(flui/title
-;;               :class "onyx-element"
               :label "Raw Environment"
               :level :level3)
-            (flui/call
-              summary
-              (if-not only-summary?
-                (assoc (deref-or-value sim) :onyx.sim/summary-fn identity)
-                sim))
+            [summary sim (when-not only-summary? identity)]
             ]))))
 
-(defn task-filter [sim]
-  (let [{:keys [sim-id  conn]} (deref-or-value sim)
-        {hidden-tasks                           :onyx.sim/hidden-tasks
+(defn task-filter [{:as sim :keys [sim-id conn]}]
+  (let [{hidden-tasks                           :onyx.sim/hidden-tasks
          {catalog          :onyx.core/catalog}  :onyx.core/job
          {sorted-tasks     :sorted-tasks}        :onyx.sim/env}
         (pull conn '[:onyx.sim/hidden-tasks
@@ -288,9 +280,8 @@
                                            :onyx.sim/task-names %})
                             )])))
 
-(defn env-presentation-controls [sim]
-  (let [{:keys [conn ]} (deref-or-value sim)
-        [pretty-env-control summary-control segments-control action-control description-control]
+(defn env-presentation-controls [{:as sim :keys [sim-id conn]}]
+  (let [[pretty-env-control summary-control segments-control action-control description-control]
         (map #(pull conn '[*] [:onyx/name %]) [:onyx.sim.control/pretty-env? :onyx.sim.control/only-summary? :onyx.sim.control/render-segments? :onyx.sim.control/next-action? :onyx.sim.control/description?])
         pretty-env? (:onyx.sim.control/toggled? pretty-env-control)
         env-style (if pretty-env? :onyx.sim.control/pretty-env? :onyx.sim.control/raw-env?)]
@@ -351,9 +342,8 @@
          [;;[env-presentation-controls sim)
           [task-filter sim]])]))
 
-(defn main-controls [sim]
-  (let [{:keys [sim-id   conn]} (deref-or-value sim)
-        {:keys [:onyx.sim/running?]} (pull conn [:onyx.sim/running?] sim-id)]
+(defn main-controls [{:as sim :keys [sim-id conn]}]
+  (let [{:keys [:onyx.sim/running?]} (pull conn [:onyx.sim/running?] sim-id)]
     (flui/h-box
       :class "onyx-panel"
       :gap ".5ch"
@@ -389,9 +379,8 @@
          :on-click #(dispatch conn {:onyx/type :onyx.api/stop
                                :onyx.sim/sim sim-id}))])))
 
-(defn next-action [sim]
-  (let [{:keys [sim-id conn]} (deref-or-value sim)
-        {{next-action :next-action} :onyx.sim/env} (pull conn '[{:onyx.sim/env [:next-action]}] sim-id)]
+(defn next-action [{:as sim :keys [sim-id conn]}]
+  (let [{{next-action :next-action} :onyx.sim/env} (pull conn '[{:onyx.sim/env [:next-action]}] sim-id)]
     (if-not (option-selected? sim :onyx.sim.control/next-action?)
       flui/none
       (flui/h-box
@@ -404,9 +393,8 @@
            :label "Next Action")
          (flui/label :label (pr-str next-action))]))))
 
-(defn view [sim]
-  (let [{:keys [sim-id conn]} (deref-or-value sim)
-        {:keys [:onyx.sim/title :onyx.sim/description]} (pull conn '[:onyx.sim/title :onyx.sim/description] sim-id)
+(defn view [{:as sim :keys [sim-id conn]}]
+  (let [{:keys [:onyx.sim/title :onyx.sim/description]} (pull conn '[:onyx.sim/title :onyx.sim/description] sim-id)
         description? (option-selected? sim :onyx.sim.control/description?)]
     (flui/v-box
       :class "onyx-sim"
@@ -505,11 +493,8 @@
                                          :src "onyx-logo.png"}])
                  (flui/label :label "nyx-sim")])
               (flui/horizontal-bar-tabs
-;;                 :class "onyx-panel"
                 :tabs (conj (into [(:settings icons)] sims) (:sims icons))
                 :model @selected
-;;                 :id-fn :db/id
-;;                 :label-fn (comp name :onyx/name)
                 :on-change #(reset! selected %))])
            (flui/gap :size ".25rem")
            (selection-view @selected)

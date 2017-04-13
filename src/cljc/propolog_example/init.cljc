@@ -105,26 +105,14 @@
   {:onyx/name :render-env
    :onyx.sim/title "Render Network"
    :onyx.sim/description "Right now it has one task which is a giant match statement. We can break this match task up into tasks. For dat.view I think we'll end up using selectors (either spector or kiio) to determine what containers things render into, but maybe not."
-   :onyx.sim/import-uri "example.edn"
+   :onyx.sim/import-uri "renderables.edn"
    :onyx.core/job
    {:onyx/type :onyx.core/job
     :onyx.core/catalog catalog
-    :onyx.core/workflow [[:in :datoms]
-                         [:datoms :rule1] [:rule1 :rule3]
-                         [:datoms :rule2]
-                         [:rule3 :q1]
-                         [:rule2 :q2]
-                         [:q1 :match]
-                         [:q2 :match]
+    :onyx.core/workflow [[:in :match]
                          [:match :render]]
     :onyx.core/lifecycles []
-    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
-                                                   :datoms [:rule1 :rule2]
-                                                   :rule1 [:rule3]
-                                                   :rule2 [:q2]
-                                                   :rule3 [:q1]
-                                                   :q1 [:match]
-                                                   :q2 [:match]
+    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
                                                    :match [:render]})}})
 
 (defn create-conn []
