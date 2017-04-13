@@ -3,7 +3,6 @@
             [propolog-example.onyx :as onyx]
             [propolog-example.flui :as flui]
             [propolog-example.event :as event :refer [dispatch raw-dispatch]]
-            [propolog-example.svg :as svg]
             [propolog-example.utils :refer [cat-into]]
             [datascript.core :as d]
             #?(:cljs [posh.reagent :as posh])
@@ -263,7 +262,6 @@
                    [*]}]}] sim-id)
         task-selection (into {} (map (juxt :onyx/name identity) catalog))
         task-choices (map task-selection sorted-tasks)]
-    (log/debug sim-id)
     (flui/v-box
       :class "onyx-panel"
       :children
@@ -334,12 +332,11 @@
       :class "onyx-panel"
       :children
       [(flui/title
-;;          :class "onyx-element"
          :level :level3
          :label "View Options")
        (flui/h-box
          :children
-         [;;[env-presentation-controls sim)
+         [[env-presentation-controls sim]
           [task-filter sim]])]))
 
 (defn main-controls [{:as sim :keys [sim-id conn]}]
@@ -349,31 +346,26 @@
       :gap ".5ch"
       :children
       [(flui/button
-;;          :class "onyx-element"
          :label "Tick"
          :disabled? running?
          :on-click #(dispatch conn {:onyx/type :onyx.api/tick
                                :onyx.sim/sim sim-id}))
        (flui/button
-;;          :class "onyx-element"
          :label "Step"
          :disabled? running?
          :on-click #(dispatch conn {:onyx/type :onyx.api/step
                                :onyx.sim/sim sim-id}))
        (flui/button
-;;          :class "onyx-element"
          :label "Drain"
          :disabled? running?
          :on-click #(dispatch conn {:onyx/type  :onyx.api/drain
                                :onyx.sim/sim sim-id}))
        (flui/button
-;;          :class "onyx-element"
          :label "Start"
          :disabled? running?
          :on-click #(raw-dispatch conn {:onyx/type :onyx.api/start
                                :onyx.sim/sim sim-id}))
        (flui/button
-;;          :class "onyx-element"
          :label "Stop"
          :disabled? (not running?)
          :on-click #(dispatch conn {:onyx/type :onyx.api/stop
@@ -408,8 +400,7 @@
          (flui/box
            :class "onyx-panel"
            :child [:p description]))
-;;        [view-controls sim)
-;;        [task-filter sim)
+       [task-filter sim]
        [main-controls sim]
        [next-action sim]
        [raw-env sim]
@@ -455,10 +446,8 @@
                          (if (keyword? id)
                            [(get-in icons [id :target])
                             {:conn conn}]
-                         [view
-                          {:sim-id id
-                           :conn conn
-                           }]))]
+                           [view {:sim-id id
+                                  :conn conn}]))]
     (fn [conn]
       (let [sims (q '[:find ?sim-name ?sim ?running
                       :in $

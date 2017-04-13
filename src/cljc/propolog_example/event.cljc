@@ -22,7 +22,7 @@
   (d/transact! conn [[:db.fn/call intent seg]]))
 
 (defn raw-dispatch [conn seg]
-  ;; TODO: make a nice error for when you didn't use raw-dispatch! and you should have
+  ;; TODO: make a nice error for when you didn't use raw-dispatch and you should have
   (intent conn seg))
 
 (defn pull-and-transition-env [db sim-id & transitions]
@@ -103,7 +103,7 @@
   (let [running? (:onyx.sim/running? (d/entity @conn sim))]
     (when running?
       ;; FIXME: upgrade performance by doing everything inline
-      (dispatch! conn {:onyx/type :reagent/next-tick})
+      (dispatch conn {:onyx/type :reagent/next-tick})
       (r/next-tick #(run-sim conn sim))))))
 
 (defmethod intent
