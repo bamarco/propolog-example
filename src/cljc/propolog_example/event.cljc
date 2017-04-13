@@ -12,14 +12,16 @@
             )
   #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]])))
 
+;; TODO: catch and display simulator errors.
+
 (defmulti intent (fn [_ seg]
 ;;                    (log/debug seg "Intenting" (:onyx/type seg))
                    (:onyx/type seg)))
 
-(defn dispatch! [conn seg]
+(defn dispatch [conn seg]
   (d/transact! conn [[:db.fn/call intent seg]]))
 
-(defn raw-dispatch! [conn seg]
+(defn raw-dispatch [conn seg]
   ;; TODO: make a nice error for when you didn't use raw-dispatch! and you should have
   (intent conn seg))
 

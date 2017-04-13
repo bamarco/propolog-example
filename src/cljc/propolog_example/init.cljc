@@ -7,7 +7,7 @@
 
             ;; LOAD externs
             [propolog-example.catalog]
-            [propolog-example.svg]
+            [propolog-example.svg :as svg]
 
             #?(:cljs [posh.reagent :as posh])
             #?(:cljs [cljs.core.async :refer [<! chan]])
@@ -80,6 +80,7 @@
    :onyx.sim/title "Propolog Basic Example"
    :onyx.sim/description "Some shapes."
    :onyx.sim/import-uri "example.edn"
+   :onyx.sim/render svg/render-match
    :onyx.core/job
    {:onyx/type :onyx.core/job
     :onyx.core/catalog catalog
@@ -134,11 +135,11 @@
     (d/transact! conn [[:db.fn/call sim/db-create-sim main-sim]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim render-sim]])
     #?(:cljs
-        (event/raw-dispatch! conn {:onyx/type :onyx.sim.event/import-segments
+        (event/raw-dispatch conn {:onyx/type :onyx.sim.event/import-segments
                                    :onyx.sim/task-name :in
                                    :onyx.sim/sim [:onyx/name :main-env]}))
     #?(:cljs
-        (event/raw-dispatch! conn {:onyx/type :onyx.sim.event/import-segments
+        (event/raw-dispatch conn {:onyx/type :onyx.sim.event/import-segments
                                    :onyx.sim/task-name :in
                                    :onyx.sim/sim [:onyx/name :render-env]}))
     conn))
