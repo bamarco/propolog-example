@@ -465,25 +465,34 @@
   (let [selected (atom (:db/id (d/entity @conn [:onyx/name :main-env])))
         selection-view (fn [id]
                          (if (keyword? id)
-                           (flui/call (get-in icons [id :target]) {:onyx.sim/dispatch #(event/dispatch! conn %)
-                                                                   :onyx.sim/raw-dispatch #(event/raw-dispatch! conn %)
-                                                                   :conn conn})
+                           (flui/call (get-in icons [id :target])
+                                      {:onyx.sim/dispatch #(event/dispatch! conn %)
+                                       :onyx.sim/raw-dispatch #(event/raw-dispatch! conn %)
+                                       :conn conn})
                            (flui/call view
                                       {:sim-id id
                                        :onyx.sim/dispatch #(event/dispatch! conn %)
                                        :onyx.sim/raw-dispatch #(event/raw-dispatch! conn %)
-;;                                        :onyx.sim/render svg/render-match
+                                       :onyx.sim/render svg/render-match
                                        :conn conn
                                        })))]
     (fn [conn]
-      (let [sims (q '[:find ?sim-name ?sim
+      (let [sims (q '[:find ?sim-name ?sim ?running
                       :in $
                       :where
                       [?sim :onyx/name ?sim-name]
-                      [?sim :onyx/type :onyx.sim/sim]] conn)
-            sims (for [[nam id] sims]
+                      [?sim :onyx/type :onyx.sim/sim]
+                      [?sim :onyx.sim/running? ?running]] conn)
+            any-running? (transduce
+                       (map (fn [[_ _ r]]
+                              r))
+                       #(or %1 %2)
+                       false
+                       sims)
+            sims (for [[nam id _] sims]
                    {:id id
-                    :label (name nam)})]
+                    :label (name nam)})
+            ]
         (flui/v-box
           :children
           [(flui/gap :size ".25rem")
@@ -495,7 +504,7 @@
              [(flui/h-box
                 :class "onyx-logo"
                 :children
-                [(flui/box :child [:img {:class "onyx-logo-img"
+                [(flui/box :child [:img {:class (str "onyx-logo-img" (when any-running? " spinning"))
                                          :src "onyx-logo.png"}])
                  (flui/label :label "nyx-sim")])
               (flui/horizontal-bar-tabs

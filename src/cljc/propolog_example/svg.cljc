@@ -236,3 +236,20 @@
              [{:type :instance-shape :v v}] (flui/box :child [:p (str "SHAPE: " v)]) ;; TODO: make a generic shape with a label equal to the keyword v
              [{:type :instance-4sides}] (apply svg-orphan v-quad)
              :else (flui/box :child [:p "fail"])))))
+
+(defn ^:export render-match2
+    ([seg]
+     ;; FIXME: I definitely am doing this wrong. I need to figure out which parts need to be a transducer and which need to be the reducing function. You can tell by the travesty of a call that is in sim.cljc: (render (reduce render (render) outputs))
+     ;; ???: how do we match containers to representations that go together. It seems like the container is the accumulation and the representations are the stream of inputs.
+     ;; ???: how do we have a tree of transducers. Wait that sounds like the compute-graph. Somehow we need to be able to control the path the render should follow, maybe?
+     ;; ???: how do we integrate transducers with onyx. Draegalus said that feature was coming soon in talk, is NOW soon?
+;;      (log/debug "rendering segment with keys" dom seg)
+           (match
+             [seg]
+             [{:type :instance-shape :v :square}] v-square
+             [{:type :instance-shape :v :circle}] v-circle
+             [{:type :instance-shape :v :rect}] v-rect
+             [{:type :instance-shape :v :triangle}] v-triangle
+             [{:type :instance-4sides}] v-quad
+             :else {:render/type :unmatched
+                    :seg seg})))

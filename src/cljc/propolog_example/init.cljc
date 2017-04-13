@@ -67,7 +67,7 @@
    {:onyx/type :function
     :onyx/name :match
     :onyx/batch-size onyx-batch-size
-    :onyx/fn :propolog-example.svg/render-match}])
+    :onyx/fn :propolog-example.svg/render-match2}])
 
 
 (defn flow-not-nil [[source sinks]]
@@ -83,14 +83,14 @@
    :onyx.core/job
    {:onyx/type :onyx.core/job
     :onyx.core/catalog catalog
-    :onyx.core/workflow [[:onyx.sim/event :render]
+    :onyx.core/workflow [;;[:onyx.sim/event :render]
                          [:in :datoms]
-               [:datoms :rule1] [:rule1 :rule3]
-               [:datoms :rule2]
-               [:rule3 :q1]
-               [:rule2 :q2]
-               [:q1 :render]
-               [:q2 :render]]
+                         [:datoms :rule1] [:rule1 :rule3]
+                         [:datoms :rule2]
+                         [:rule3 :q1]
+                         [:rule2 :q2]
+                         [:q1 :render]
+                         [:q2 :render]]
     :onyx.core/lifecycles []
     :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
                                                    :datoms [:rule1 :rule2]
@@ -104,12 +104,26 @@
   {:onyx/name :render-env
    :onyx.sim/title "Render Network"
    :onyx.sim/description "Right now it has one task which is a giant match statement. We can break this match task up into tasks. For dat.view I think we'll end up using selectors (either spector or kiio) to determine what containers things render into, but maybe not."
+   :onyx.sim/import-uri "example.edn"
    :onyx.core/job
    {:onyx/type :onyx.core/job
     :onyx.core/catalog catalog
-    :onyx.core/workflow [[:in :match] [:match :render]]
+    :onyx.core/workflow [[:in :datoms]
+                         [:datoms :rule1] [:rule1 :rule3]
+                         [:datoms :rule2]
+                         [:rule3 :q1]
+                         [:rule2 :q2]
+                         [:q1 :match]
+                         [:q2 :match]
+                         [:match :render]]
     :onyx.core/lifecycles []
-    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
+    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
+                                                   :datoms [:rule1 :rule2]
+                                                   :rule1 [:rule3]
+                                                   :rule2 [:q2]
+                                                   :rule3 [:q1]
+                                                   :q1 [:match]
+                                                   :q2 [:match]
                                                    :match [:render]})}})
 
 (defn create-conn []
@@ -123,4 +137,8 @@
         (event/raw-dispatch! conn {:onyx/type :onyx.sim.event/import-segments
                                    :onyx.sim/task-name :in
                                    :onyx.sim/sim [:onyx/name :main-env]}))
+    #?(:cljs
+        (event/raw-dispatch! conn {:onyx/type :onyx.sim.event/import-segments
+                                   :onyx.sim/task-name :in
+                                   :onyx.sim/sim [:onyx/name :render-env]}))
     conn))
