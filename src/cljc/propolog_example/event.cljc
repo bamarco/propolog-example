@@ -15,8 +15,10 @@
 ;; TODO: catch and display simulator errors.
 
 (defmulti intent (fn [_ seg]
-;;                    (log/debug seg "Intenting" (:onyx/type seg))
-                   (:onyx/type seg)))
+                   (let [intention (:onyx/type seg)]
+                     (assert intention "No :onyx/type set for intent.")
+                     ;; (log/debug seg "Intenting" intention)
+                     intention)))
 
 (defn dispatch [conn seg]
   (d/transact! conn [[:db.fn/call intent seg]]))
@@ -119,6 +121,15 @@
   :onyx.api/stop
   [db {:keys [:onyx.sim/sim]}]
   [[:db/add sim :onyx.sim/running? false]])
+
+(defmethod intent
+  :onyx.sim/select-view
+  [db {:keys [selected]}]
+  (if (keyword? selected)
+    [[:db/add [:onyx/name :onyx.sim/settings] :onyx.sim/selected-view selected]]
+    [{:db/id [:onyx/name :onyx.sim/settings]
+      :onyx.sim/selected-env selected
+      :onyx.sim/selected-view :onyx.sim/selected-env}]))
 
 #?(:cljs
 (defmethod intent

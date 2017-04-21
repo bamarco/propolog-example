@@ -29,7 +29,9 @@
         body (:svg/body svg)
         opts svg;;(select-keys svg (:svg/keys svg))
         ]
-  [tag opts body]))
+    (if tag
+      [tag opts body]
+      [:text {:x 0 :y 0 :font-size 14} (str "no ->svg tag for ")])))
 
 (defn +bounding-box []
   (xfn [{:as svg :keys [width height padding]}]
@@ -89,8 +91,8 @@
       ([acc element]
         (let [modi @mod-current]
         (if [modi < (count colors)]
-          (reset! mod-current (inc modi))
-          (reset! mod-current 0))
+          (vreset! mod-current (inc modi))
+          (vreset! mod-current 0))
           ;; ???: How should we handle differences between underlying container?
           (step acc (assoc-in element
                               [:fill] ;; svg
@@ -157,7 +159,7 @@
   (educe
     (comp
       (x>circle)
-      (+fill "magenta")
+      (+fill "Magenta")
       dark-outline)
     v-shape))
 
@@ -175,7 +177,7 @@
       (xfn [{:as svg :keys [height]}]
            (assoc svg :height (/ (* 2 height) 3)))
       (x>rect)
-      (+fill "cyan")
+      (+fill "Cyan")
       dark-outline)
     v-shape))
 
@@ -183,7 +185,7 @@
   (educe
     (comp
       (x>circumscribed-equi-tri)
-      (+fill "cornsilk")
+      (+fill "Cornsilk")
       dark-outline)
     v-shape))
 
@@ -192,7 +194,7 @@
   (educe
     (comp
       (x>number-text 4)
-      (+fill "white")
+      (+fill "White")
       no-outline)
     v-shape)])
 
@@ -213,6 +215,173 @@
     4 :quad
     :poly))
 
+(defn ^:export seg->svg-spec [seg]
+  (log/debug "test-spec-here")
+  (match
+    [seg]
+    [{:type :shape :kind :square}] v-square
+    [{:type :shape :kind :circle}] v-circle
+    [{:type :shape :kind :rect}] v-rect
+    [{:type :shape :kind :triangle}] v-triangle
+    [{:type :shape :kind :quad}] v-quad
+    :else {:render/type :unmatched
+           :seg seg}))
+
+(defn svg-seg-boxer
+  "Converts segments into individual svg elements."
+  [& segs]
+  [flui/h-box :children
+   (into
+     []
+     (comp
+       (map seg->svg-spec)
+       (map ->svg)
+       (map (fn [{:as svg :keys [bound-width bound-height]}]
+              [flui/box
+               :child
+               [:svg {:width bound-width :height bound-height}]]))))
+   segs])
+
+(defn svg-seg-canvaser
+  "Converts segments svg elements and puts them in one big svg container."
+  [& segs]
+  (let [total-bound-width (transduce (map :bound-width) + segs)
+        total-bound-height (transduce (map :bound-height) max 0 segs)]
+    [flui/box :child
+     (into
+       [:svg {:width total-bound-width
+              :height total-bound-height}]
+       (comp
+         (map seg->svg-spec)
+         (map ->svg)))
+     segs]))
+
+;; (defn +svg-boundary [& {:keys [align] :or {align :horizontal}}]
+;;   (fn [step]
+;;     (let [[wf hf] (case align
+;;                     :horizontal [+ max]
+;;                     :vertical [max +])
+;;           width (volatile! 0)
+;;           height (volatile! 0)
+;;           ]
+;;     (fn
+;;       ([] (step))
+;;       ([acc] {:svg/type :container
+;;               :html/tag :svg
+;;               :width width
+;;               :height height})
+;;       ([acc {:as seg :keys [bound-width bound-height]}]
+;;        (let [bw (wf @width bound-width)
+;;              bh (hf @height bound-height)]
+;;          (vreset! width bw)
+;;          (vreset! height bh)
+;;          (step acc seg)))))))
+
+(defn +svg-grow-bound [& {:keys [align] :or {align :horizontal}}]
+  (fn [step]
+    (let [[wf hf] (case align
+                    :horizontal [+ max]
+                    :vertical [max +])
+          width (volatile! 0)
+          height (volatile! 0)
+          ]
+    (fn
+      ([] (step))
+      ([acc] (step acc))
+      ([acc {:as seg :keys [bound-width bound-height]}]
+       (let [bw (wf @width bound-width)
+             bh (hf @height bound-height)
+             changed? (or (= @width bw) (= bh @height))
+             acc (if changed? (step acc {:svg/type :container
+                                         :html/tag :svg
+                                         :width bw
+                                         :height bh}) acc)]
+         (vreset! width bw)
+         (vreset! height bh)
+         (step acc seg)))))))
+
+(defn +svg-spread [& {:keys [align] :or {align :horizontal}}]
+  (fn [step]
+    (let [attr (case align
+                 :horizontal :x
+                 :vertical :y)
+          width (volatile! 0)
+          height (volatile! 0)]
+      (fn
+        ([] (step))
+        ([acc] (step acc))
+        ([acc svg]
+         (if (= (:svg/type svg) :container)
+           (do
+             (vreset! width (:width svg))
+             (vreset! height (:height svg))
+             (step acc svg))
+           (step acc (update-in svg [attr] + (case align
+                                               :horizontal @width
+                                               :vertical @height)))))))))
+
+(defn svg-container->hiccup [{:as svg :keys [:html/tag :html/content]}]
+  (if tag
+    (into [tag (dissoc svg :html/tag :html/content :svg/type)] content)
+    [:p (str "No :html/tag set for" svg)]))
+
+(defn +svgrgggl [& {:as opts}]
+  (fn [step]
+    (let [container (volatile! {:svg/type :container
+                                :html/tag :svg
+                                :width 100
+                                :height 100
+                                :html/content []})]
+      (fn
+        ([] (step))
+        ([acc] (let [c @container
+                     acc (if c
+                           (do
+                             (vreset! container false)
+                             (unreduced (step acc (svg-container->hiccup c))))
+                           acc)]
+                 (step acc)))
+        ([acc svg]
+         (if (= (:svg/type svg) :container)
+           (vswap! container into svg)
+           (vswap! container update-in [:html/content] conj (->svg svg)))
+         acc)))))
+
+(defn +boxed []
+  (map (fn [svg-hiccup]
+         [flui/box
+          :child
+          (or svg-hiccup flui/none)])))
+
+;; (def seg->svg2
+;;   (comp
+;;     (map seg->svg-spec)
+;;     (map ->svg)
+;;     (+svg-boundary :align :horizontal)
+;;     (+svgrgggl)
+;;     (+boxed)))
+
+(defn seg<x>svg []
+  (comp
+    (+svg-grow-bound :align :horizontal)
+    (+svg-spread)
+    (+svgrgggl)
+    (+boxed)
+;;     (map (fn [seg]
+;;            [flui/p (str seg)]))
+    ))
+
+;; (defn svg-seg-reducer
+;;   ([] {:html/tag flui/box
+;;        :child {:db/id 1
+;;                :html/tag :svg
+;;                :width 0
+;;                :height 0}}
+;;    [flui/box :child [:svg {:width 0 :height 0}]])
+;;   ([box svg] (transact! [[:db/add 1 :html/content ]])
+
+;;   ))
+
 ;; tasks
 (defn ^:export render-match
     ([] [])
@@ -221,7 +390,7 @@
      ;; FIXME: I definitely am doing this wrong. I need to figure out which parts need to be a transducer and which need to be the reducing function. You can tell by the travesty of a call that is in sim.cljc: (render (reduce render (render) outputs))
      ;; ???: how do we match containers to representations that go together. It seems like the container is the accumulation and the representations are the stream of inputs.
      ;; ???: how do we have a tree of transducers. Wait that sounds like the compute-graph. Somehow we need to be able to control the path the render should follow, maybe?
-     ;; ???: how do we integrate transducers with onyx. Draegalus said that feature was coming soon in talk, is NOW soon?
+     ;; ???: how do we integrate transducers with onyx.
 ;;      (log/debug "rendering segment with keys" dom seg)
      (conj dom
            (match
@@ -236,20 +405,3 @@
              [{:type :instance-shape :v v}] (flui/box :child [:p (str "SHAPE: " v)]) ;; TODO: make a generic shape with a label equal to the keyword v
              [{:type :instance-4sides}] (apply svg-orphan v-quad)
              :else (flui/box :child [:p "fail"])))))
-
-(defn ^:export render-match2
-    ([seg]
-     ;; FIXME: I definitely am doing this wrong. I need to figure out which parts need to be a transducer and which need to be the reducing function. You can tell by the travesty of a call that is in sim.cljc: (render (reduce render (render) outputs))
-     ;; ???: how do we match containers to representations that go together. It seems like the container is the accumulation and the representations are the stream of inputs.
-     ;; ???: how do we have a tree of transducers. Wait that sounds like the compute-graph. Somehow we need to be able to control the path the render should follow, maybe?
-     ;; ???: how do we integrate transducers with onyx. Draegalus said that feature was coming soon in talk, is NOW soon?
-;;      (log/debug "rendering segment with keys" dom seg)
-           (match
-             [seg]
-             [{:type :instance-shape :v :square}] v-square
-             [{:type :instance-shape :v :circle}] v-circle
-             [{:type :instance-shape :v :rect}] v-rect
-             [{:type :instance-shape :v :triangle}] v-triangle
-             [{:type :instance-4sides}] v-quad
-             :else {:render/type :unmatched
-                    :seg seg})))

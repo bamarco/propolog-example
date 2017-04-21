@@ -2,8 +2,9 @@
   (:require [taoensso.timbre :as log]
             [propolog-example.onyx :as onyx]
             [propolog-example.flui :as flui]
+            [propolog-example.svg :as svg]
             [propolog-example.event :as event :refer [dispatch raw-dispatch]]
-            [propolog-example.utils :refer [cat-into]]
+            [propolog-example.utils :as utils :refer [cat-into]]
             [datascript.core :as d]
             #?(:cljs [posh.reagent :as posh])
             #?(:cljs [reagent.core :as r :refer [atom]])))
@@ -94,6 +95,7 @@
                            :db/cardinality :db.cardinality/many}
    :onyx/name {:db/unique :db.unique/identity}
    :onyx.core/job {:db/type :db.type/ref}
+   :onyx.sim/selected-env {:db/type :db.type/ref}
    :onyx.sim/env {:db/type :db.type/ref}})
 
 (defn ds->onyx [sim-job]
@@ -103,12 +105,14 @@
                                 :onyx.core/lifecycles :lifecycles
                                 :onyx.core/flow-conditions :flow-conditions})))
 
+(defn- add-tempids [coll gen-tempid!]
+  (map #(into {:db/id %2} %1) coll (repeatedly gen-tempid!)))
+
 (defn db-create-sim [db {:as sim-spec
-                         {:as job :keys [:onyx.core/catalog]} :onyx.core/job}]
-  (let [sim (into (assoc default-sim :db/id -1) sim-spec)
-        job (into {:db/id -2} job)
-        catalog-ids (map (comp - (partial + 3)) (range))
-        catalog (map #(assoc % :db/id %2) catalog catalog-ids)
+                         {:as job :keys [:onyx.core/catalog]} :onyx.core/job} & {:keys [gen-tempid!] :or {gen-tempid! utils/gen-tempid!}}]
+  (let [sim (into (assoc default-sim :db/id (gen-tempid!)) sim-spec)
+        job (into {:db/id (gen-tempid!)} job)
+        catalog (add-tempids catalog gen-tempid!)
         job (assoc job :onyx.core/catalog catalog)
         sim (into sim {:onyx.core/job job
                        :onyx.sim/env (onyx/init (ds->onyx job))})]
@@ -117,9 +121,28 @@
        job]
       catalog)))
 
-(defn db-create-ui [db]
-  (let [options (map #(assoc % :db/id %2) default-view-options (range (- (inc (count default-view-options))) -1))]
-    options))
+(defn db-create-ui [db & {:keys [gen-tempid!] :or {gen-tempid! utils/gen-tempid!}}]
+  (let [options (add-tempids default-view-options gen-tempid!)]
+    (into
+      [{:db/id (gen-tempid!)
+        :onyx/name :onyx.sim/settings
+        :onyx.sim/options options
+        :onyx.sim/selected-view :onyx.sim/selected-env
+        :onyx.sim/selected-env [:onyx/name :main-env] ;; FIXME: set up a default hello world env. maybe a few others.
+        }]
+      options)))
+
+
+(defonce test-conn (d/create-conn))
+
+(defn db-test-helper [db]
+  [[:db/add -1 :test/a "helper"]
+   [:db/add -2 :test/b "helper"]])
+
+(defn db-test-multi-call [db & {:keys [gen-tempid!] :or {gen-tempid! utils/gen-tempid!}}]
+  [[:db.fn/call db-test-helper]
+   [:db/add (gen-tempid!) :test/a "multi-call"]
+   [:db/add (gen-tempid!) :test/b "multi-call"]])
 
 
 
@@ -143,10 +166,13 @@
         [(flui/title
            :label "Outbox"
            :level :level3)
-         (if (and render-segments? render)
+;;          (if (and render-segments? render)
            ;;            (transduce render container outputs)
-           (render (reduce render (render) outputs))
-           (flui/code :code outputs))]))))
+;;            (render (reduce render (render) outputs))
+           [flui/v-box :children
+            (into [] (svg/seg<x>svg) outputs)]
+;;            (flui/code :code outputs))
+         ]))))
 
 (defn pretty-inbox [{:as sim :keys [sim-id conn]} task-name]
   (let [{:keys [:onyx.sim/import-uri :onyx.sim/render]
@@ -378,7 +404,7 @@
       (flui/h-box
         :class "onyx-panel"
         :gap "1ch"
-;;         :align :end
+        :align :end
         :children
         [(flui/label
            :class "field-label"
@@ -393,7 +419,6 @@
       :gap ".25rem"
       :children
       [(flui/title
-;;          :class "onyx-element"
          :label title
          :level :level1)
        (when (and description? description)
@@ -408,7 +433,7 @@
        ])))
 
 (defn manage-sims [{:keys [conn]}]
-  (let [sims (pull-q '[:onyx/name]
+  (let [sims (pull-q '[*]
                '[:find ?sim
                  :in $
                  :where
@@ -418,16 +443,27 @@
     :class "onyx-sim"
     :children
     (cat-into
-      []
-      (for [sim sims]
-        [:p (:onyx/name sim)])
-      [[:div "TODO: Add simulator"]]))))
+      [(flui/title
+         :label "Simulator Management"
+         :level :level1)]
+      (for [{:keys [:onyx.sim/title :onyx.sim/description]} sims]
+        (flui/v-box
+          :gap "1ch"
+          :children
+          [(flui/title
+             :level :level2
+             :label title)
+           (flui/p description)]))
+      [(flui/p "TODO: + Simulator")]))))
 
 (defn settings [sim]
-  (flui/box
+  (flui/v-box
     :class "onyx-sim"
-    :child
-    [env-presentation-controls sim]))
+    :children
+    [(flui/title
+         :label "Settings"
+         :level :level1)
+      [env-presentation-controls sim]]))
 
 (def icons
   {:sims
@@ -439,54 +475,63 @@
     :label [:i {:class "zmdi zmdi-settings"}]
     :target settings}})
 
+(defn sim-selection [conn]
+  (let [{{:keys [:db/id]} :onyx.sim/selected-env
+         :keys [:onyx.sim/selected-view]}
+        (pull
+          conn
+          '[:onyx.sim/selected-env :onyx.sim/selected-view]
+          [:onyx/name :onyx.sim/settings])]
+    (if (= :onyx.sim/selected-env selected-view)
+      id
+      selected-view)))
+
 (defn sim-selector [conn]
 #?(:cljs
-  (let [selected (atom (:db/id (d/entity @conn [:onyx/name :main-env])))
-        selection-view (fn [id]
-                         (if (keyword? id)
-                           [(get-in icons [id :target])
-                            {:conn conn}]
-                           [view {:sim-id id
-                                  :conn conn}]))]
-    (fn [conn]
-      (let [sims (q '[:find ?sim-name ?sim ?running
-                      :in $
-                      :where
-                      [?sim :onyx/name ?sim-name]
-                      [?sim :onyx/type :onyx.sim/sim]
-                      [?sim :onyx.sim/running? ?running]] conn)
-            any-running? (transduce
-                       (map (fn [[_ _ r]]
-                              r))
-                       #(or %1 %2)
-                       false
-                       sims)
-            sims (for [[nam id _] sims]
-                   {:id id
-                    :label (name nam)})
-            ]
-        (flui/v-box
-          :children
-          [(flui/gap :size ".25rem")
-           (flui/h-box
-             :class "onyx-nav"
-             :align :center
-             :gap "1ch"
-             :children
-             [(flui/h-box
-                :class "onyx-logo"
-                :children
-                [(flui/box :child [:img {:class (str "onyx-logo-img"
-                                                     ;; FIXME: abrupt ending animation
-                                                     (when any-running? " spinning"))
-                                         :src "onyx-logo.png"}])
-                 (flui/label :label "nyx-sim")])
-              (flui/horizontal-bar-tabs
-                :tabs (conj (into [(:settings icons)] sims) (:sims icons))
-                :model @selected
-                :on-change #(reset! selected %))])
-           (flui/gap :size ".25rem")
-           (selection-view @selected)
-           ]))))
-    :clj
-    [:div "Standard HTML not yet supported."]))
+    (let [selected (sim-selection conn)
+          sims (q '[:find ?title ?sim ?running
+                    :in $
+                    :where
+                    [?sim :onyx/name ?sim-name]
+                    [?sim :onyx.sim/title ?title]
+                    [?sim :onyx/type :onyx.sim/sim]
+                    [?sim :onyx.sim/running? ?running]] conn)
+          any-running? (transduce
+                         (map (fn [[_ _ r]]
+                                r))
+                         #(or %1 %2)
+                         false
+                         sims)
+          sims (for [[nam id _] sims]
+                 {:id id
+                  :label nam})]
+      (log/debug "sim-selection view" selected)
+      (flui/v-box
+        :children
+        [(flui/gap :size ".25rem")
+         (flui/h-box
+           :class "onyx-nav"
+           :align :center
+           :gap "1ch"
+           :children
+           [(flui/h-box
+              :class "onyx-logo"
+              :children
+              [(flui/box :child [:img {:class (str "onyx-logo-img"
+                                                   ;; FIXME: abrupt ending animation
+                                                   (when any-running? " spinning"))
+                                       :src "onyx-logo.png"}])
+               (flui/label :label "nyx-sim (alpha)")])
+            (flui/horizontal-bar-tabs
+              :tabs (conj (into [(:settings icons)] sims) (:sims icons))
+              :model selected
+              :on-change #(dispatch conn {:onyx/type :onyx.sim/select-view
+                                          :selected %}))])
+         (flui/gap :size ".25rem")
+         (if (keyword? selected)
+           [(get-in icons [selected :target]) {:conn conn}]
+           [view {:sim-id selected :conn conn}])
+         ;; TODO: bottom gap for scrolling
+         ]))
+:clj
+[:div "Standard HTML not yet supported."]))

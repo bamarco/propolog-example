@@ -38,6 +38,14 @@
       (doall (swallow-eof (edn-seq stream))))
     (println (str "File does not exist: " filename)))))
 
+(defonce last-tempid (atom 0))
+(defn gen-tempid!
+  "Generate a tempid for datascript. You can use this generator XOR your own, but NOT BOTH because there could be clashes. Only call from inside a db-fn"
+  [& {:keys [wrap-on-overflow? warn-on-overflow?]}]
+  (let [id (swap! last-tempid dec)]
+    (assert (> id -1000000) "Ran out of tempids. To generate more this gen-tempid function will need to be patched to partition tempids or otherwise.")
+    id))
+
 (defn deref-or-value
   "Derefs when able, otherwise the value."
   [val-or-atom]

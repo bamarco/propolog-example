@@ -67,7 +67,7 @@
    {:onyx/type :function
     :onyx/name :match
     :onyx/batch-size onyx-batch-size
-    :onyx/fn :propolog-example.svg/render-match2}])
+    :onyx/fn :propolog-example.svg/seg->svg-spec}])
 
 
 (defn flow-not-nil [[source sinks]]
@@ -81,47 +81,46 @@
    :onyx.sim/description "Some shapes."
    :onyx.sim/import-uri "example.edn"
    :onyx.sim/render svg/render-match
-   :onyx.core/job
-   {:onyx/type :onyx.core/job
-    :onyx.core/catalog catalog
-    :onyx.core/workflow [;;[:onyx.sim/event :render]
-                         [:in :datoms]
-                         [:datoms :rule1] [:rule1 :rule3]
-                         [:datoms :rule2]
-                         [:rule3 :q1]
-                         [:rule2 :q2]
-                         [:q1 :render]
-                         [:q2 :render]]
-    :onyx.core/lifecycles []
-    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
-                                                   :datoms [:rule1 :rule2]
-                                                   :rule1 [:rule3]
-                                                   :rule2 [:q2]
-                                                   :rule3 [:q1]
-                                                   :q1 [:render]
-                                                   :q2 [:render]})}})
+   :onyx.core/job {:onyx/type :onyx.core/job
+                   :onyx.core/catalog catalog
+                   :onyx.core/workflow [;;[:onyx.sim/event :render]
+                                         [:in :datoms]
+                                         [:datoms :rule1] [:rule1 :rule3]
+                                         [:datoms :rule2]
+                                         [:rule3 :q1]
+                                         [:rule2 :q2]
+                                         [:q1 :render]
+                                         [:q2 :render]]
+                   :onyx.core/lifecycles []
+                   :onyx.core/flow-conditions (mapv flow-not-nil {:in [:datoms]
+                                                                  :datoms [:rule1 :rule2]
+                                                                  :rule1 [:rule3]
+                                                                  :rule2 [:q2]
+                                                                  :rule3 [:q1]
+                                                                  :q1 [:render]
+                                                                  :q2 [:render]})}})
 
 (def render-sim
   {:onyx/name :render-env
    :onyx.sim/title "Render Network"
-   :onyx.sim/description "Right now it has one task which is a giant match statement. We can break this match task up into tasks. For dat.view I think we'll end up using selectors (either spector or kiio) to determine what containers things render into, but maybe not."
+   :onyx.sim/description "Right now it has one task which is a giant match statement. We can break this match task up into smaller tasks. For dat.view I think we'll end up using selectors (either spector or kioo) to determine what containers things render into, but maybe not."
    :onyx.sim/import-uri "renderables.edn"
-   :onyx.core/job
-   {:onyx/type :onyx.core/job
-    :onyx.core/catalog catalog
-    :onyx.core/workflow [[:in :match]
-                         [:match :render]]
-    :onyx.core/lifecycles []
-    :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
-                                                   :match [:render]})}})
+;;    :onyx.sim/render svg/
+   :onyx.core/job {:onyx/type :onyx.core/job
+                   :onyx.core/catalog catalog
+                   :onyx.core/workflow [[:in :match]
+                                        [:match :render]]
+                   :onyx.core/lifecycles []
+                   :onyx.core/flow-conditions (mapv flow-not-nil {:in [:match]
+                                                                  :match [:render]})}})
 
 (defn create-conn []
   (let [conn (d/create-conn sim/schema)]
     #?(:cljs (posh/posh! conn))
     ;; ???: temp-id's in two db.fn/call conflict each other. Is this a bug or a feature? We either need a warning or the bug fixed in datascript.
-;;     (d/transact! conn [[:db.fn/call sim/db-create-ui]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim main-sim]])
     (d/transact! conn [[:db.fn/call sim/db-create-sim render-sim]])
+    (d/transact! conn [[:db.fn/call sim/db-create-ui]])
     #?(:cljs
         (event/raw-dispatch conn {:onyx/type :onyx.sim.event/import-segments
                                    :onyx.sim/task-name :in

@@ -1,6 +1,15 @@
-[{:type :instance-shape, :e 42, :v :triangle}
- {:type :instance-shape, :e 43, :v :square}
- {:type :instance-shape, :e 44, :v :rect}
- {:type :instance-shape, :e 45, :v :circle}
- {:type :instance-4sides, :e 43}
- {:type :instance-4sides, :e 44}]
+[{:type :shape
+  :sides 3
+  :kind :triangle}
+ {:type :shape
+  :sides 4
+  :kind :square}
+ {:type :shape
+  :sides 4
+  :kind :rect}
+ {:type :shape
+  :sides 1
+  :kind :circle}
+ {:type :shape
+  :kind :quad
+  :sides 4}]
