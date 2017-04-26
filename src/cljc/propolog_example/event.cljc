@@ -76,6 +76,16 @@
     [[:db/add sim :onyx.sim/hidden-tasks (conj hidden-tasks task-name)]]))
 
 (defmethod intent
+  :onyx.sim/transition-env
+  [db {:keys [:onyx.sim/sim :onyx.sim/transition]}]
+  (let [action
+        (case transition
+          :onyx.api/tick onyx/tick
+          :onyx.api/step onyx/step
+          :onyx.api/drain onyx/drain)]
+    (pull-and-transition-env db sim action)))
+
+(defmethod intent
   :onyx.sim.event/import-uri
   [db {:keys [:onyx.sim/sim :onyx.sim/task-name uri]}]
   [[:db/add sim :onyx.sim/import-uri uri]])
@@ -121,6 +131,18 @@
   :onyx.api/stop
   [db {:keys [:onyx.sim/sim]}]
   [[:db/add sim :onyx.sim/running? false]])
+
+(defmethod intent
+  :onyx.sim/toggle-play
+  [conn {:keys [:onyx.sim/sim]}]
+  (let [running? (:onyx.sim/running? (d/entity @conn sim))]
+    (if running?
+      (d/transact! conn [[:db/add sim :onyx.sim/running? false]])
+      #?(:cljs
+          (do
+            (d/transact! conn [[:db/add sim :onyx.sim/running? true]])
+            (run-sim conn sim))
+          :clj (throw "Cannot start simulator in clojure. Only implemented in cljs.")))))
 
 (defmethod intent
   :onyx.sim/select-view

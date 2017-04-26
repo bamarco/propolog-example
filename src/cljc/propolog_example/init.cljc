@@ -80,7 +80,7 @@
    :onyx.sim/title "Propolog Basic Example"
    :onyx.sim/description "Some shapes."
    :onyx.sim/import-uri "example.edn"
-   :onyx.sim/render svg/render-match
+;;    :onyx.sim/render svg/render-match
    :onyx.core/job {:onyx/type :onyx.core/job
                    :onyx.core/catalog catalog
                    :onyx.core/workflow [;;[:onyx.sim/event :render]
