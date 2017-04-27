@@ -359,8 +359,13 @@
           [task-filter sim]])]))
 
 (defn selected-sim [conn]
-  (get-in (pull conn '[:onyx.sim/selected-env] [:onyx/name :onyx.sim/settings])
-          [:onyx.sim/selected-env :db/id]))
+  (let [{{:keys [:db/id]} :onyx.sim/selected-env} (pull conn '[:onyx.sim/selected-env] [:onyx/name :onyx.sim/settings])]
+    ;; ???: Should we use {:db/id id} or just id
+    id))
+
+(defn selected-view [conn]
+  (let [{:keys [:onyx.sim/selected-view]} (pull conn '[:onyx.sim/selected-view] [:onyx/name :onyx.sim/settings])]
+    selected-view))
 
 (defn toggle-play [conn]
   #(event/raw-dispatch conn {:onyx/type :onyx.sim/toggle-play
@@ -385,10 +390,13 @@
                          :onyx.sim/sim (selected-sim conn)}))
 
 (defn next-action-actual [conn]
-  (let [aye (pull conn '[{:onyx.sim/env [*]}] (selected-sim conn))]
-    (get-in
-      aye
-      [:onyx.sim/env :next-action])))
+  (let [{{:keys [next-action]} :onyx.sim/env} (pull conn '[{:onyx.sim/env [:next-action]}] (selected-sim conn))]
+    next-action))
+
+(defn description-actual [conn]
+  (let [{:keys [:onyx.sim/description]}
+        (pull conn '[:onyx.sim/description] (selected-sim conn))]
+    description))
 
 (defn hidden-tasks [conn]
   (log/debug "hidden-tasks")
@@ -412,32 +420,51 @@
         task-choices (map task-possible sorted-tasks)]
     task-choices))
 
+(defn show-description? [conn]
+  (let [{:keys [:control/toggled?]} (pull conn '[:control/toggled?] [:control/name :onyx.sim/description?])]
+    toggled?))
+
+(defn toggle-description [conn]
+  #(d/transact!
+     conn
+     [[:db/add [:control/name :onyx.sim/description?] :control/toggled? %]]))
+
 (def control-catalog
   [{:control/type :indicator
-     :control/name :onyx.sim/next-action
-     :control/label "Next Action"
-     :control/display (list next-action-actual)}
-    {:control/type :action
-     :control/name :onyx.api/tick
-     :control/label "Tick"
-     :control/action (list tick)
-     :control/disabled? (list running?)}
-    {:control/type :action
-     :control/name :onyx.api/step
-     :control/label "Step"
-     :control/action (list step)
-     :control/disabled? (list running?)}
-    {:control/type :action
-     :control/name :onyx.api/drain
-     :control/label "Drain"
-     :control/action (list drain)
-     :control/disabled? (list running?)}
-    {:control/type :toggle
-     :control/name :onyx.sim/play
-     :control/label "Play"
-     :control/toggle-label "Pause"
-     :control/toggled? (list running?)
-     :control/toggle (list toggle-play)}
+    :control/name :onyx.sim/next-action
+    :control/label "Next Action"
+    :control/display (list next-action-actual)}
+   {:control/type :indicator
+    :control/name :onyx.sim/description
+    :control/label "Description"
+    :control/show? (list show-description?)
+    :control/display (list description-actual)}
+   {:control/type :toggle
+    :control/name :onyx.sim/description?
+    :control/label "Show Description"
+    :control/toggle (list toggle-description)
+    :control/toggled? false}
+   {:control/type :action
+    :control/name :onyx.api/tick
+    :control/label "Tick"
+    :control/action (list tick)
+    :control/disabled? (list running?)}
+   {:control/type :action
+    :control/name :onyx.api/step
+    :control/label "Step"
+    :control/action (list step)
+    :control/disabled? (list running?)}
+   {:control/type :action
+    :control/name :onyx.api/drain
+    :control/label "Drain"
+    :control/action (list drain)
+    :control/disabled? (list running?)}
+   {:control/type :toggle
+    :control/name :onyx.sim/play
+    :control/label "Play"
+    :control/toggle-label "Pause"
+    :control/toggled? (list running?)
+    :control/toggle (list toggle-play)}
    {:control/type :choice
     :control/name :onyx.sim/hidden-tasks
     :control/label "Hidden Tasks"
@@ -447,25 +474,37 @@
     :control/id-fn :onyx/name
     :control/label-fn :onyx/name}])
 
-(defn pull-control [conn control-name]
+(defn compile-control [conn control-spec]
   (into
     {}
-    (for [[attr value] (pull conn '[*] [:control/name control-name])]
+    (for [[attr value] control-spec]
       (if (list? value)
         [attr (apply (first value) conn (rest value))]
         [attr value]))))
 
+(defn pull-control [conn control-name]
+  (compile-control conn (pull conn '[*] [:control/name control-name])))
+
 (defn action-button [conn control-name]
-  (let [{:keys [:control/action :control/label]} (pull-control conn control-name)]
+  (let [{:keys [:control/disabled? :control/action :control/label]} (pull-control conn control-name)]
     [flui/button
      :label label
+     :disabled? disabled?
      :on-click action]))
 
 (defn toggle-button [conn control-name]
   (let [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]} (pull-control conn control-name)]
     [flui/button
-     :label (if toggled? toggle-label label)
+     :label (if toggled? (or toggle-label label) label)
      :on-click toggle]))
+
+(defn toggle-checkbox [conn control-name]
+  (let [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]} (pull-control conn control-name)]
+    [flui/checkbox
+     :model toggled?
+     :label (if toggled? (or toggle-label label) label)
+     :on-change toggle
+      ]))
 
 (defn selection-list [conn control-name]
   (let [{:keys [:control/label :control/choices :control/chosen :control/choose :control/id-fn :control/label-fn]} (pull-control conn control-name)]
@@ -493,6 +532,17 @@
       [flui/label
        :label display]]]))
 
+(defn indicator-display [conn control-name]
+  (let [{:keys [:control/display]} (pull-control conn control-name)]
+    [flui/p display]))
+
+(defn when-show? [[component-fn conn control-name]]
+  ;; FIXME: should be middleware/interceptors so you can use lots of this style
+  (let [{:keys [:control/show?]} (compile-control conn (pull conn '[:control/show?] [:control/name control-name]))]
+    (if show?
+      [component-fn conn control-name]
+      flui/none)))
+
 (defn action-box [conn]
   [flui/h-box
    :gap ".5ch"
@@ -506,10 +556,70 @@
   [flui/v-box
    :children
    [[selection-list conn :onyx.sim/hidden-tasks]
+    [toggle-checkbox conn :onyx.sim/description?]
+    [when-show? [indicator-display conn :onyx.sim/description]]
     [action-box conn]
     [indicator-label conn :onyx.sim/next-action]
     [pretty-env {:conn conn
                  :sim-id (selected-sim conn)}]]])
+
+(defn manage-sims [{:keys [conn]}]
+  (let [sims (pull-q '[*]
+               '[:find ?sim
+                 :in $
+                 :where
+                 [?sim :onyx/type :onyx.sim/sim]
+                 ] conn)]
+  (flui/v-box
+;;     :class "onyx-sim"
+    :children
+    (cat-into
+      [(flui/title
+         :label "Simulator Management"
+         :level :level1)]
+      (for [{:keys [:onyx.sim/title :onyx.sim/description]} sims]
+        (flui/v-box
+          :gap "1ch"
+          :children
+          [(flui/title
+             :level :level2
+             :label title)
+           (flui/p description)]))
+      [(flui/p "TODO: + Simulator")]))))
+
+(defn settings [sim]
+  (flui/v-box
+;;     :class "onyx-sim"
+    :children
+    [(flui/title
+         :label "Settings"
+         :level :level1)
+      [env-presentation-controls sim]]))
+
+(defmulti display-selected (fn [_ selection]
+                             selection))
+
+(defmethod display-selected
+  :onyx.sim/selected-env
+  [conn _]
+  [sim-view conn])
+
+(defmethod display-selected
+  :settings
+  [conn _]
+  [settings {:conn conn}])
+
+(defmethod display-selected
+  :sims
+  [conn _]
+  [manage-sims {:conn conn}])
+
+(defn content-view [conn]
+  (let [view (selected-view conn)]
+    [flui/box
+     :class "onyx-sim"
+     :child
+     [display-selected conn (selected-view conn)]]))
 
 (defn toggle->button [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]}]
   [flui/button
@@ -545,106 +655,6 @@
        :command toggle-label
        :disabled? (not toggled?)
        :action toggle)]))
-
-;; (defn main-controls [{:as sim :keys [sim-id conn]}]
-;;   (let [{:keys [:onyx.sim/running?]} (pull conn [:onyx.sim/running?] sim-id)]
-;;     (flui/h-box
-;;       :class "onyx-panel"
-;;       :gap ".5ch"
-;;       :children
-;;       [(flui/button
-;;          :label "Tick"
-;;          :disabled? running?
-;;          :on-click #(dispatch conn {:onyx/type :onyx.api/tick
-;;                                :onyx.sim/sim sim-id}))
-;;        (flui/button
-;;          :label "Step"
-;;          :disabled? running?
-;;          :on-click #(dispatch conn {:onyx/type :onyx.api/step
-;;                                :onyx.sim/sim sim-id}))
-;;        (flui/button
-;;          :label "Drain"
-;;          :disabled? running?
-;;          :on-click #(dispatch conn {:onyx/type  :onyx.api/drain
-;;                                :onyx.sim/sim sim-id}))
-;;        (flui/button
-;;          :label "Start"
-;;          :disabled? running?
-;;          :on-click #(raw-dispatch conn {:onyx/type :onyx.api/start
-;;                                :onyx.sim/sim sim-id}))
-;;        (flui/button
-;;          :label "Stop"
-;;          :disabled? (not running?)
-;;          :on-click #(dispatch conn {:onyx/type :onyx.api/stop
-;;                                :onyx.sim/sim sim-id}))])))
-
-;; (defn next-action [{:as sim :keys [sim-id conn]}]
-;;   (let [{{next-action :next-action} :onyx.sim/env} (pull conn '[{:onyx.sim/env [:next-action]}] sim-id)]
-;;     (if-not (option-selected? sim :onyx.sim.control/next-action?)
-;;       flui/none
-;;       (flui/h-box
-;;         :class "onyx-panel"
-;;         :gap "1ch"
-;;         :align :end
-;;         :children
-;;         [(flui/label
-;;            :class "field-label"
-;;            :label "Next Action")
-;;          (flui/label :label (pr-str next-action))]))))
-
-;; (defn view [{:as sim :keys [sim-id conn]}]
-;;   (let [{:keys [:onyx.sim/title :onyx.sim/description]} (pull conn '[:onyx.sim/title :onyx.sim/description] sim-id)
-;;         description? (option-selected? sim :onyx.sim.control/description?)]
-;;     (flui/v-box
-;;       :class "onyx-sim"
-;;       :gap ".25rem"
-;;       :children
-;;       [(flui/title
-;;          :label title
-;;          :level :level1)
-;;        (when (and description? description)
-;;          (flui/box
-;;            :class "onyx-panel"
-;;            :child [:p description]))
-;;        [task-filter sim]
-;;        [main-controls sim]
-;;        [next-action sim]
-;;        [raw-env sim]
-;;        [pretty-env sim]
-;;        ])))
-
-(defn manage-sims [{:keys [conn]}]
-  (let [sims (pull-q '[*]
-               '[:find ?sim
-                 :in $
-                 :where
-                 [?sim :onyx/type :onyx.sim/sim]
-                 ] conn)]
-  (flui/v-box
-    :class "onyx-sim"
-    :children
-    (cat-into
-      [(flui/title
-         :label "Simulator Management"
-         :level :level1)]
-      (for [{:keys [:onyx.sim/title :onyx.sim/description]} sims]
-        (flui/v-box
-          :gap "1ch"
-          :children
-          [(flui/title
-             :level :level2
-             :label title)
-           (flui/p description)]))
-      [(flui/p "TODO: + Simulator")]))))
-
-(defn settings [sim]
-  (flui/v-box
-    :class "onyx-sim"
-    :children
-    [(flui/title
-         :label "Settings"
-         :level :level1)
-      [env-presentation-controls sim]]))
 
 (def icons
   {:sims
@@ -707,13 +717,9 @@
               :model selected
               :on-change #(dispatch conn {:onyx/type :onyx.sim/select-view
                                           :selected %}))])
-         (flui/gap :size ".25rem")
-         (if (keyword? selected)
-           [(get-in icons [selected :target]) {:conn conn}]
-           ;;[view {:sim-id selected :conn conn}]
-           [sim-view conn]
-           )
+         [flui/gap :size ".25rem"]
+         [content-view conn]]
          ;; TODO: bottom gap for scrolling
-         ]))
+        ))
 :clj
 [:div "Standard HTML not yet supported."]))
