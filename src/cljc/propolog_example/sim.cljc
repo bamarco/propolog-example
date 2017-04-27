@@ -393,14 +393,6 @@
         task-choices (map task-possible sorted-tasks)]
     task-choices))
 
-(defn ^:export show-description? [conn]
-  (let [{:keys [:control/toggled?]} (pull conn '[:control/toggled?] [:control/name :onyx.sim/description?])]
-    toggled?))
-
-(defn ^:export show-next-action? [conn]
-  (let [{:keys [:control/toggled?]} (pull conn '[:control/toggled?] [:control/name :onyx.sim/next-action?])]
-    toggled?))
-
 (defn ^:export any-running? [conn]
   ;; FIXME: rewrite query to use or-aggregation
   (let [sims (q '[:find ?title ?sim ?running
