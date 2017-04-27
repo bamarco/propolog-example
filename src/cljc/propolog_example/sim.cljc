@@ -236,6 +236,12 @@
   (let [{:keys [:onyx.sim/selected-view]} (pull conn '[:onyx.sim/selected-view] [:onyx/name :onyx.sim/settings])]
     selected-view))
 
+(defn selected-nav [conn]
+  (let [view (selected-view conn)]
+    (if (= view :onyx.sim/selected-env)
+      (selected-sim conn)
+      view)))
+
 (defn toggle-play [conn]
   #(event/raw-dispatch conn {:onyx/type :onyx.sim/toggle-play
                              :onyx.sim/sim (selected-sim conn)}))
@@ -277,6 +283,28 @@
                          :onyx.sim/sim (selected-sim conn)
                          :onyx.sim/task-names %}))
 
+(defn select-view [conn]
+  #(event/dispatch conn {:onyx/type :onyx.sim/select-view
+                         :onyx.sim/sim (selected-sim conn)
+                         :selected %}))
+
+(defn view-choices [conn]
+    (let [sims (q '[:find ?title ?sim
+                    :in $
+                    :where
+                    [?sim :onyx/name ?sim-name] ;; ???: needed?
+                    [?sim :onyx.sim/title ?title]
+                    [?sim :onyx/type :onyx.sim/sim]] conn)
+          sims (for [[nam id] sims]
+                 {:id id
+                  :label nam})]
+  (cat-into
+    [{:id :settings
+      :label [:i {:class "zmdi zmdi-widgets"}]}]
+      sims
+    [{:id :sims
+      :label [:i {:class "zmdi zmdi-settings"}]}])))
+
 (defn sorted-tasks [conn]
   (let [{{:keys [sorted-tasks]} :onyx.sim/env
          {:keys [:onyx.core/catalog]} :onyx.core/job}
@@ -316,12 +344,40 @@
 (defn simple-not-chosen? [conn control-name choice]
   (not (simple-chosen? conn control-name choice)))
 
+(defn any-running? [conn]
+  ;; FIXME: rewrite query to use or-aggregation
+  (let [sims (q '[:find ?title ?sim ?running
+                    :in $
+                    :where
+                    [?sim :onyx/name ?sim-name]
+                  [?sim :onyx.sim/title ?title]
+                  [?sim :onyx/type :onyx.sim/sim]
+                  [?sim :onyx.sim/running? ?running]] conn)
+        any-running? (transduce
+                       (map (fn [[_ _ r]]
+                              r))
+                       #(or %1 %2)
+                       false
+                       sims)]
+    any-running?))
+
 (def control-catalog
   [{:control/type :indicator
     :control/name :onyx.sim/next-action
     :control/label "Next Action"
     :control/show? (list show-next-action?)
     :control/display (list next-action-actual)}
+   {:control/type :choice
+    :control/name :onyx.sim/nav
+    :control/label "Navigation"
+    :control/chosen (list selected-nav)
+    :control/choose (list select-view)
+    :control/choices (list view-choices)}
+   {:control/type :active-logo
+    :control/name :onyx.sim/logo
+    :control/label "nyx-sim (alpha)"
+    :control/img "onyx-logo.png"
+    :control/active? (list any-running?)}
    {:control/type :indicator
     :control/name :onyx.sim/description
     :control/label "Description"
@@ -456,6 +512,16 @@
       [flui/label
        :label display]]]))
 
+(defn active-logo [conn control-name]
+  (let [{:keys [:control/label :control/img :control/active?]} (pull-control conn control-name)]
+    ;; FIXME: abrupt ending animation
+    (flui/h-box
+      :class "active-logo"
+      :children
+      [[flui/box :child [:img {:class (str "active-logo-img" (when active? " spinning"))
+                               :src img}]]
+       [flui/label :label label]])))
+
 (defn radio-choice [conn control-name index]
   (let [{:keys [:control/label-fn :control/id-fn :control/chosen :control/choices :control/choose]} (pull-control conn control-name)
         label-fn (or label-fn :label)
@@ -555,7 +621,7 @@
 (defmethod display-selected
   :settings
   [conn _]
-  [settings {:conn conn}])
+  [settings conn])
 
 (defmethod display-selected
   :sims
@@ -564,55 +630,11 @@
 
 (defn content-view [conn]
   (let [view (selected-view conn)]
+    ;; ???: bottom gap for scrolling
     [flui/box
      :class "onyx-sim"
      :child
      [display-selected conn (selected-view conn)]]))
-
-(defn toggle->button [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]}]
-  [flui/button
-   :label (if toggled? label toggle-label)
-   :on-click toggle])
-
-(defn toggle->checkbox [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]}]
-  [flui/checkbox
-   :model toggled?
-   :label (if toggled? label toggle-label)
-   :on-click toggle])
-
-(defn toggle->aui [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]}]
-  (let [aui-api pr-str]
-    ;; TODO: make an audio interface toolkit
-    [(aui-api
-       :command label
-       :disabled? toggled?
-       :action toggle)
-     (aui-api
-       :command toggle-label
-       :disabled? (not toggled?)
-       :action toggle)]))
-
-(defn toggle->cli [{:keys [:control/label :control/toggle-label :control/toggled? :control/toggle]}]
-  (let [cli-api pr-str]
-    ;; TODO: make a command line interface toolkit
-    [(cli-api
-       :command label
-       :disabled? toggled?
-       :action toggle)
-     (cli-api
-       :command toggle-label
-       :disabled? (not toggled?)
-       :action toggle)]))
-
-(def icons
-  {:sims
-   {:id :sims
-    :label [:i {:class "zmdi zmdi-widgets"}]
-    :target manage-sims}
-   :settings
-   {:id :settings
-    :label [:i {:class "zmdi zmdi-settings"}]
-    :target settings}})
 
 (defn sim-selection [conn]
   (let [{{:keys [:db/id]} :onyx.sim/selected-env
@@ -625,49 +647,34 @@
       id
       selected-view)))
 
+(defn nav-bar [conn control-name]
+  (let [{:keys [:control/id-fn :control/label-fn :control/choices :control/choose :control/chosen]} (pull-control conn control-name)
+        id-fn (or id-fn :id)
+        label-fn (or label-fn :label)]
+    ;; ???: should the or-clause for id-fn be part of compile-controls?
+    ;; ???: maybe a more generic way to do the bridging. drop nil arguments?
+    [flui/horizontal-bar-tabs
+     :tabs choices
+     :model chosen ;; ???: treat chosen as a set always? distinction for choose one vs choose many?
+     :id-fn id-fn
+     :label-fn label-fn
+     :label-fn label-fn
+     :on-change choose]))
+
 (defn sim-selector [conn]
 #?(:cljs
-    (let [selected (sim-selection conn)
-          sims (q '[:find ?title ?sim ?running
-                    :in $
-                    :where
-                    [?sim :onyx/name ?sim-name]
-                    [?sim :onyx.sim/title ?title]
-                    [?sim :onyx/type :onyx.sim/sim]
-                    [?sim :onyx.sim/running? ?running]] conn)
-          any-running? (transduce
-                         (map (fn [[_ _ r]]
-                                r))
-                         #(or %1 %2)
-                         false
-                         sims)
-          sims (for [[nam id _] sims]
-                 {:id id
-                  :label nam})]
-      (flui/v-box
+      [flui/v-box
         :children
-        [(flui/gap :size ".25rem")
-         (flui/h-box
-           :class "onyx-nav"
+        [[flui/gap :size ".25rem"]
+         [flui/h-box
+          :style {:margin-left "auto"
+                  :margin-right "auto"}
            :align :center
            :gap "1ch"
            :children
-           [(flui/h-box
-              :class "onyx-logo"
-              :children
-              [(flui/box :child [:img {:class (str "onyx-logo-img"
-                                                   ;; FIXME: abrupt ending animation
-                                                   (when any-running? " spinning"))
-                                       :src "onyx-logo.png"}])
-               (flui/label :label "nyx-sim (alpha)")])
-            (flui/horizontal-bar-tabs
-              :tabs (conj (into [(:settings icons)] sims) (:sims icons))
-              :model selected
-              :on-change #(dispatch conn {:onyx/type :onyx.sim/select-view
-                                          :selected %}))])
+           [[active-logo conn :onyx.sim/logo]
+            [nav-bar conn :onyx.sim/nav]]]
          [flui/gap :size ".25rem"]
-         [content-view conn]]
-         ;; ???: bottom gap for scrolling
-        ))
+         [content-view conn]]]
 :clj
 [:div "Standard HTML not yet supported."]))
